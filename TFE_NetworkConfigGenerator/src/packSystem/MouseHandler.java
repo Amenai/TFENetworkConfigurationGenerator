@@ -19,15 +19,17 @@ public class MouseHandler extends MouseAdapter {
 	private int xOffset;
 	private int yOffset;
 	private Hardware draggy;
+	private GUIController gui;
 
-	public MouseHandler (Dimension dimension){
+	public MouseHandler (Dimension dimension, GUIController guiController){
 		this.dimension = dimension;
+		this.gui = guiController;
 	}
 
 	@Override
 	public void mouseReleased(MouseEvent me) {
 		if (draggy != null) {
-			draggy.setText("");
+			draggy.setText(""+draggy.getIP());
 			draggy.setSize(draggy.getPreferredSize());
 			draggy = null;
 		}
@@ -46,7 +48,7 @@ public class MouseHandler extends MouseAdapter {
 				draggy.setSize(draggy.getPreferredSize());
 			}
 			if ( SwingUtilities.isLeftMouseButton(me)){
-
+				draggy.setText(""+draggy.getIP());
 				//draggy.setText("Left");  
 			}                             
 		}
@@ -62,5 +64,6 @@ public class MouseHandler extends MouseAdapter {
 				}
 			}
 		}
+		this.gui.repaint();
 	}
 }
