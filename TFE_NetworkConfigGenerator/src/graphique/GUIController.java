@@ -37,9 +37,7 @@ public class GUIController extends JLayeredPane {
         	hardwares.setSize(new Dimension(hardwares.getIcon().getIconWidth(), hardwares.getIcon().getIconHeight()));
         	add(hardwares);        	
         }
-      /*  Graphics g = this.getGraphics();
-		g.drawArc(1, 50, 50, 50, 50, 50);
-		repaint();*/
+
         MouseHandler handler = new MouseHandler(getPreferredSize(),this);
         this.addMouseListener(handler);
         this.addMouseMotionListener(handler);

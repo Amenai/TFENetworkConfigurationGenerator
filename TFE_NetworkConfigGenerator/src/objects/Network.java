@@ -3,12 +3,13 @@ package objects;
 import java.util.ArrayList;
 
 import packSystem.HardwaresList;
+import packSystem.IPClass;
 
 public class Network {
 
 	private String network = "192.168.0.0";
 	private String mask = "255.255.255.0";
-	
+	private boolean firstIPRouter = true;
 	private ArrayList<Hardware> Hardwares = new ArrayList<>();
 	
 	public Network(String newGlobal) {
@@ -39,6 +40,14 @@ public class Network {
 	}
 	
 	public String getRouterIP(){
-		return "192.168.0.1";
+		if (firstIPRouter){
+			return "192.168.0.1";
+		}
+		else return "192.168.0.255";
+		
+	}
+	
+	private static String getPersonnalAdress(String network) {
+		return IPClass.getFirstOpenedAddress();
 	}
 }

@@ -11,10 +11,6 @@ public class UserPC extends Hardware{
 		super(network, Toolkit.getDefaultToolkit().getImage(ImageFile),code);
 	}
 
-	private static String getPersonnalAdress(String network) {
-		return IPClass.getFirstOpenedAddress();
-	}
-	
 	public void printConfig() {
 		System.out.println("Config PC = ");
 		//System.out.println(this.IP);

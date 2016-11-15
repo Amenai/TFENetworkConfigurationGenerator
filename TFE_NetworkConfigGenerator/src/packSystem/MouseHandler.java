@@ -4,6 +4,7 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Scanner;
 
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -49,8 +50,12 @@ public class MouseHandler extends MouseAdapter {
 			}
 			if ( SwingUtilities.isLeftMouseButton(me)){
 				draggy.setText(""+draggy.getIP());
-				//draggy.setText("Left");  
 			}                             
+			if ( SwingUtilities.isMiddleMouseButton(me)){
+				String t = Messages.askStringValue("IP ? ");
+				draggy.setIP(t);
+				draggy.setText(draggy.getIP());
+			}
 		}
 	}
 	@Override

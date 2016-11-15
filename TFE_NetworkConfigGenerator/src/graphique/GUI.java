@@ -6,6 +6,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -14,7 +15,9 @@ import javax.swing.RepaintManager;
 
 public class GUI implements ActionListener {
 	protected JMenuItem exit = new JMenuItem("Exit");
-	protected JMenu menu = new JMenu("Fichier");
+	protected JCheckBoxMenuItem ipRouter = new JCheckBoxMenuItem("First ip");
+	protected JMenu menuF = new JMenu("Fichier");
+	protected JMenu menuO = new JMenu("Options");
     public GUI(String network) {
         EventQueue.invokeLater(new Runnable() {
             @Override
@@ -29,8 +32,12 @@ public class GUI implements ActionListener {
                 
             	JMenuBar menuBar = new JMenuBar();
             	
-            	menuBar.add(menu);
-            	menu.setMnemonic(KeyEvent.VK_F);
+            	menuBar.add(menuF);
+            	menuBar.add(menuO);
+
+            	menuF.setMnemonic(KeyEvent.VK_F);
+            	menuO.setMnemonic(KeyEvent.VK_O);
+            	
             	exit.addActionListener(new ActionListener() {
 					
 					@Override
@@ -44,8 +51,9 @@ public class GUI implements ActionListener {
 						
 					}
 				});
-            	menu.add(exit);
-            	
+            	menuF.add(exit);
+            	menuO.add(ipRouter);
+            	ipRouter.setSelected(true);
             	frame.setJMenuBar(menuBar);                         
                 frame.pack();
                 frame.setLocationRelativeTo(null);
