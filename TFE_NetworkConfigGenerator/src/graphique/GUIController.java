@@ -1,15 +1,21 @@
 package graphique;
 
+import java.awt.BasicStroke;
+import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
 
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 
+import objects.Connection;
 import objects.Hardware;
 import objects.Network;
 import packSystem.HardwaresList;
 import packSystem.MouseHandler;
+import tests.Example.Relationship;
 
 public class GUIController extends JLayeredPane {
 
@@ -23,24 +29,44 @@ public class GUIController extends JLayeredPane {
         this.network.addHardware(HardwaresList.ROUTER);
         this.network.addHardware(HardwaresList.USER_PC);
         this.network.addHardware(HardwaresList.USER_PC);                  
-        int i=0;
+        int i=0;        
         for (Hardware hardwares : this.network.getHardwares()){
-        	JLabel label = new JLabel("");
-        	ImageIcon icon = new ImageIcon(hardwares.getImage());
-        	label.setSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
-        	label.setIcon(icon);
-        	label.setLocation(10,i*60);
-        	add(label);
+        	hardwares.setLocation(10,i*60);
         	i++;
+        	
+        	hardwares.setSize(new Dimension(hardwares.getIcon().getIconWidth(), hardwares.getIcon().getIconHeight()));
+        	add(hardwares);        	
         }
-
+      /*  Graphics g = this.getGraphics();
+		g.drawArc(1, 50, 50, 50, 50, 50);
+		repaint();*/
         MouseHandler handler = new MouseHandler(getPreferredSize());
-        addMouseListener(handler);
-        addMouseMotionListener(handler);
+        this.addMouseListener(handler);
+        this.addMouseMotionListener(handler);
     }
 
     @Override
     public Dimension getPreferredSize() {
         return new Dimension(500, 500);
     }
+    @Override
+    public void paint(Graphics g) {    	    	
+		Graphics2D g2D = (Graphics2D) g;
+		for (int i=0;i < this.getComponentCount();i++){
+			Component comp = this.getComponent(i);
+			if (comp instanceof Hardware){
+				Hardware h = (Hardware) comp;
+				for(Connection e : h.getCon()){
+
+
+	                g2D.setStroke(new BasicStroke(3));
+	                Point2D p1 = new Point2D.Double(this.network.getHardwares().get(e.getFirstCompo()).getX()+(h.getIcon().getIconWidth()/2), this.network.getHardwares().get(e.getFirstCompo()).getY()+(h.getIcon().getIconWidth()/2));
+		            Point2D p2 = new Point2D.Double(this.network.getHardwares().get(e.getSecondCompo()).getY()+(h.getIcon().getIconWidth()/2), this.network.getHardwares().get(e.getSecondCompo()).getY()+(h.getIcon().getIconWidth()/2));
+		            g2D.draw(new Line2D.Double(p1, p2));				
+				}
+			}
+			//Paint le reste
+	    	super.paint(g); 
+        }
+	}
 }

@@ -2,13 +2,20 @@ package objects;
 
 public class Connection {
 
-	private String ip = "0.0.0.0";
+	private int compo1;
+	private int compo2;
 
-	public String getIp() {
-		return ip;
+	public Connection(int compo1,int compo2){
+		this.compo1 = compo1;
+		this.compo2 = compo2;
+	}
+	
+	public int getFirstCompo() {
+		return this.compo1;
 	}
 
-	public void setIp(String ip) {
-		this.ip = ip;
+	public int getSecondCompo() {
+		return this.compo2;
 	}
+
 }

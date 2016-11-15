@@ -35,7 +35,7 @@ public class GUI implements ActionListener {
 					
 					@Override
 					public void actionPerformed(ActionEvent e) {
-						System.out.println("PLOP");
+						//TODO
 						Object source = e.getSource();
 						if (source == exit){
 							System.out.println("Exit Menu");
@@ -56,7 +56,7 @@ public class GUI implements ActionListener {
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		System.out.println("PLOP");
+		//TODO Not working
 		Object source = e.getSource();
 		if (source == exit){
 			System.out.println("Exit Menu");

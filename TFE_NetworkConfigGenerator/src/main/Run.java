@@ -17,14 +17,14 @@ public class Run{
 	 * @param args
 	 */
 	public static void main(String[] args) {
-
+		new GUI("192.168.0.1");
 		@SuppressWarnings("resource")
 		Scanner keyboard = new Scanner(System.in);
 		System.out.println("Addresse globale ? ");
 		String newGlobal = keyboard.next();
 		Ip oo = new Ip(Ip.stringTo32Bits(newGlobal),false);
 		System.out.println("" + oo);
-		new GUI(newGlobal);
+		
 				
 	}
 }

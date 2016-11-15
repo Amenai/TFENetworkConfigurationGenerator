@@ -6,9 +6,9 @@ import packSystem.IPClass;
 
 public class UserPC extends Hardware{
 
-	private static String ImageFile = "D:/Amenai/Documents/Projets/TFE_NetworkConfigGenerator/src/pc.png";
-	public UserPC(String network) {	
-		super(network, Toolkit.getDefaultToolkit().getImage(ImageFile));
+	private static String ImageFile = "src/pc.png";
+	public UserPC(String network,int code) {	
+		super(network, Toolkit.getDefaultToolkit().getImage(ImageFile),code);
 	}
 
 	private static String getPersonnalAdress(String network) {

@@ -74,6 +74,7 @@ public class Drawed {
 								Lines.add(new Line(pointStart,pointEnd));
 								pointStart = null;
 							}
+							else pointStart = null;
 						}
 						repaint();
 	                }

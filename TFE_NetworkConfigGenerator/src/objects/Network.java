@@ -18,12 +18,12 @@ public class Network {
 	public void addHardware(int hardware) {
 		switch (hardware) {
 		case HardwaresList.ROUTER :
-			System.out.println("Add Routers");
-			Hardwares.add(new Router(network));
+			System.out.println("Add Routers : " + Hardwares.size());
+			Hardwares.add(new Router(network,Hardwares.size()));
 			break;
 		case HardwaresList.USER_PC :
-			System.out.println("Add PC");
-			Hardwares.add(new UserPC(network));
+			System.out.println("Add PC : " + Hardwares.size());
+			Hardwares.add(new UserPC(network,Hardwares.size()));
 			break;
 		}
 	}
