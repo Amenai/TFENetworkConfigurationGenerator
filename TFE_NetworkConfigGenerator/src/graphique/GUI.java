@@ -2,10 +2,12 @@ package graphique;
 
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 
+import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -13,12 +15,17 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.RepaintManager;
 
+import objects.Hardware;
+import packSystem.HardwaresList;
+import tests.SubnetUtils;
+
 public class GUI implements ActionListener {
 	protected JMenuItem exit = new JMenuItem("Exit");
 	protected JCheckBoxMenuItem ipRouter = new JCheckBoxMenuItem("First ip");
 	protected JMenu menuF = new JMenu("Fichier");
 	protected JMenu menuO = new JMenu("Options");
-    public GUI(String network) {
+	protected JButton menuADD = new JButton("ADD USER");
+    public GUI(SubnetUtils network) {
         EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
@@ -28,16 +35,27 @@ public class GUI implements ActionListener {
                 JFrame frame = new JFrame("Title");
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 frame.setLayout(new BorderLayout());
-                frame.add(new GUIController(network));
+                GUIController controller = new GUIController(network);
+                frame.add(controller);
                 
             	JMenuBar menuBar = new JMenuBar();
             	
             	menuBar.add(menuF);
             	menuBar.add(menuO);
-
+            	menuBar.add(menuADD);
             	menuF.setMnemonic(KeyEvent.VK_F);
             	menuO.setMnemonic(KeyEvent.VK_O);
-            	
+            	menuADD.addActionListener(new ActionListener() {
+					
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						System.out.println("ADD USER");
+						controller.network.addHardware(HardwaresList.USER_PC,new Point(225,50));
+						Hardware h = controller.network.getHardwares().get(controller.network.getHardwares().size()-1);
+						System.out.println("IP = " + h.getIP());
+						controller.plusHard(h);
+					}
+				});
             	exit.addActionListener(new ActionListener() {
 					
 					@Override

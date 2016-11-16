@@ -11,10 +11,6 @@ public class Router extends Hardware{
 	public Router(String network,int code) {		
 		super(network, Toolkit.getDefaultToolkit().getImage(ImageFile),code);
 	}
-
-	private static String getGatewayAdress(String network) {
-		return IPClass.getGatewayAddress();
-	}
 	
 	public void printConfig() {
 		System.out.println("Config Router = ");

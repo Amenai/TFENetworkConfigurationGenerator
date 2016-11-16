@@ -1,9 +1,12 @@
 package main;
 
 import java.util.Scanner;
+import java.util.regex.Pattern;
 
 import graphique.GUI;
 import ip.Ip;
+import tests.SubnetUtils;
+import tests.SubnetUtils.SubnetInfo;
 
 /**
  * Classe Main/Lancement du programme
@@ -17,13 +20,8 @@ public class Run{
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		new GUI("192.168.0.1");
-		@SuppressWarnings("resource")
-		Scanner keyboard = new Scanner(System.in);
-		System.out.println("Addresse globale ? ");
-		String newGlobal = keyboard.next();
-		Ip oo = new Ip(Ip.stringTo32Bits(newGlobal),false);
-		System.out.println("" + oo);
+		SubnetUtils subnet = SubnetUtils.getIp();
+		new GUI(subnet);
 		
 				
 	}

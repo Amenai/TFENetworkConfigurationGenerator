@@ -50,7 +50,7 @@ public class Drawing extends JPanel {
 		super.paintComponent(g);
 		Graphics2D g2 = (Graphics2D) g;
 		g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-		g2.setColor(Color.BLUE);
+		g2.setColor(Color.RED);
 		for (Point point : points) {
 			g2.fillOval(point.x, point.y, sizeX, sizeY);
 		}
