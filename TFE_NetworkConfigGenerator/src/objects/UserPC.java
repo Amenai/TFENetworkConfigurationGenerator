@@ -2,8 +2,6 @@ package objects;
 
 import java.awt.Toolkit;
 
-import packSystem.IPClass;
-
 public class UserPC extends Hardware{
 
 	private static String ImageFile = "src/pc.png";

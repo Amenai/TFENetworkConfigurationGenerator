@@ -4,7 +4,6 @@ import java.awt.Point;
 import java.util.ArrayList;
 
 import packSystem.HardwaresList;
-import packSystem.IPClass;
 import tests.SubnetUtils;
 
 public class Network {
@@ -52,18 +51,6 @@ public class Network {
 		return Hardwares;
 	}
 	
-	public String getRouterIP(){
-		if (firstIPRouter){
-			return "192.168.0.1";
-		}
-		else return "192.168.0.255";
-		
-	}
-	
-	private static String getPersonnalAdress(String network) {
-		return IPClass.getFirstOpenedAddress();
-	}
-
 	public String[] getFreeIp() {
 		return FreeIp;
 	}

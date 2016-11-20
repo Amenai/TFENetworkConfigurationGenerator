@@ -1,8 +1,11 @@
 package packSystem;
 
+import java.io.File;
+
+import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 /**
- * Classe utilisÃ©e pour les messages envers l'utilisateurs
+ * Classe utilisée pour les messages envers l'utilisateurs
  * @author sylvain
  * @version 05 Oct. 2014
  */
@@ -55,5 +58,20 @@ public class Messages {
 		JOptionPane.showInputDialog(null,
 				message, titre,
 				JOptionPane.INFORMATION_MESSAGE, null, null, in);
+	}
+	/**
+	 * Affiche un JFileChooser qui permet d' ouvrir ou sauvagarder un fichier
+	 * @return fichier selectionne
+	 */
+	public static File selectFile(int option) {
+		File file = null;
+		JFileChooser fc = new JFileChooser();
+		fc.setDialogType(option);
+		fc.setCurrentDirectory(new File(System.getProperty("user.dir")));
+		int returnVal = fc.showOpenDialog(null);
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
+			file = fc.getSelectedFile();
+		}
+		return file;
 	}
 }

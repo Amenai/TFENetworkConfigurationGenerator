@@ -25,6 +25,8 @@ public class GUI implements ActionListener {
 	protected JMenu menuF = new JMenu("Fichier");
 	protected JMenu menuO = new JMenu("Options");
 	protected JButton menuADD = new JButton("ADD USER");
+	protected JMenuItem saveNetwork = new JMenuItem("Save");
+	protected JMenuItem loadNetwork = new JMenuItem("Load");
     public GUI(SubnetUtils network) {
         EventQueue.invokeLater(new Runnable() {
             @Override
@@ -69,7 +71,25 @@ public class GUI implements ActionListener {
 						
 					}
 				});
+            	menuF.add(saveNetwork);
+            	menuF.add(loadNetwork);
+            	saveNetwork.addActionListener(new ActionListener() {
+					
+					@Override
+					public void actionPerformed(ActionEvent arg0) {
+						controller.saveNetwork();						
+					}
+				});
+            	loadNetwork.addActionListener(new ActionListener() {
+					
+					@Override
+					public void actionPerformed(ActionEvent arg0) {
+						controller.loadNetwork();						
+					}
+				});
+            	menuF.addSeparator();
             	menuF.add(exit);
+            	
             	menuO.add(ipRouter);
             	ipRouter.setSelected(true);
             	frame.setJMenuBar(menuBar);                         

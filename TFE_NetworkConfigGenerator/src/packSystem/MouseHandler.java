@@ -43,7 +43,6 @@ public class MouseHandler extends MouseAdapter {
 			draggy = (Hardware) l ;
 			xOffset = me.getX() - draggy.getX();
 			yOffset = me.getY() - draggy.getY();
-
 			if (SwingUtilities.isRightMouseButton(me)){           
 				draggy.setText(""+draggy.getIP());
 				draggy.setSize(draggy.getPreferredSize());
@@ -60,15 +59,15 @@ public class MouseHandler extends MouseAdapter {
 	}
 	@Override
 	public void mouseDragged(MouseEvent me) {
-		if (draggy != null ) {
+		if (draggy != null) {
 			if ( SwingUtilities.isLeftMouseButton(me)){
 				if (me.getX() < dimension.getWidth() && me.getY() < dimension.getHeight()){
 					if (me.getX() > 0 && me.getY() >0){
 						draggy.setLocation(me.getX() - xOffset, me.getY() - yOffset);
 					}
 				}
-			}
+				this.gui.repaint();
+			}			
 		}
-		this.gui.repaint();
 	}
 }

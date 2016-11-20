@@ -2,8 +2,6 @@ package objects;
 
 import java.awt.Toolkit;
 
-import packSystem.IPClass;
-
 public class Router extends Hardware{
 
 	private static String ImageFile = "src/router.png";

@@ -8,6 +8,7 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
+import java.io.File;
 
 import javax.swing.JLayeredPane;
 
@@ -84,5 +85,14 @@ public class GUIController extends JLayeredPane {
 			//Paint le reste
 			super.paint(g); 
 		}
+	}
+	
+	public void saveNetwork (){
+		File path = packSystem.Messages.selectFile(0);
+	}
+	
+	public void loadNetwork(){
+		File path = packSystem.Messages.selectFile(0);
+		
 	}
 }

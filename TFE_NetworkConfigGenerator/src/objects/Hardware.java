@@ -34,8 +34,7 @@ import java.util.ArrayList;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 
-@SuppressWarnings("serial")
-public class Hardware extends JLabel {
+public abstract class Hardware extends JLabel {
 	int imageWidth = 60, imageHeight = 60;
 
 	ArrayList<Connection> c = new ArrayList<Connection>(); 
