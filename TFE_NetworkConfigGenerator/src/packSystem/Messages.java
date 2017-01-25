@@ -60,13 +60,28 @@ public class Messages {
 				JOptionPane.INFORMATION_MESSAGE, null, null, in);
 	}
 	/**
-	 * Affiche un JFileChooser qui permet d' ouvrir ou sauvagarder un fichier
+	 * Affiche un JFileChooser qui permet d' ouvrir ou sauvegarder un fichier
+	 * @return fichier selectionne
+	 */
+	public static File savingFile(int option) {
+		File file = null;
+		JFileChooser fc = new JFileChooser();
+		fc.setCurrentDirectory(new File(System.getProperty("user.dir")));
+		int returnVal = fc.showSaveDialog(null);
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
+			file = fc.getSelectedFile();
+		}
+		return file;
+	}
+	/**
+	 * Affiche un JFileChooser qui permet d' ouvrir un fichier
 	 * @return fichier selectionne
 	 */
 	public static File selectFile(int option) {
 		File file = null;
 		JFileChooser fc = new JFileChooser();
-		fc.setDialogType(option);
+		//fc.showSaveDialog(fc);
+		//fc.setDialogType(option);
 		fc.setCurrentDirectory(new File(System.getProperty("user.dir")));
 		int returnVal = fc.showOpenDialog(null);
 		if (returnVal == JFileChooser.APPROVE_OPTION) {

@@ -1,32 +1,4 @@
 package objects;
-/*
-import java.awt.Image;
-
-public class Hardware{
-	 int imageWidth = 60, imageHeight = 60;
-
-	Image image ; //  TODO Default Image
-	String IP = "0.0.0.0";
-	
-	public Hardware(String network,Image image) {		
-		this.IP = network;
-		image = image.getScaledInstance(imageWidth, imageHeight, Image.SCALE_DEFAULT);
-		this.image= image;
-		
-	}
-	
-	public String getIP(){
-		return this.IP;
-	}
-
-	public Image getImage(){
-		return this.image;
-	}
-	public void printConfig() {
-		System.out.println("Config = ");
-	}
-}
-//------------------------------------------------------*/
 
 import java.awt.Image;
 import java.util.ArrayList;
@@ -34,44 +6,67 @@ import java.util.ArrayList;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 
+import packSystem.HardwaresListS;
+import packSystem.SubnetUtils;
+
 public abstract class Hardware extends JLabel {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
 	int imageWidth = 60, imageHeight = 60;
 
-	ArrayList<Connection> c = new ArrayList<Connection>(); 
-	ImageIcon icon ; //  TODO Default Image
-	String IP = "0.0.0.0";
+	private ArrayList<Integer> connection = new ArrayList<Integer>(); 
+	private ImageIcon icon ; //  TODO Default Image
+	private SubnetUtils subNet ;
+	private String Hostname = "Defaut";
 	private int ID;
-	
-	public Hardware(String network,Image image,int code) {
-		this.IP = network;
+	private int hardwareType = HardwaresListS.DEFAUT;
+	public Hardware(SubnetUtils network,String ip,Image image,int code,int type,String hostname) {
+		this.setSubNet(network);
 		this.setID(code);
-    	this.icon = new ImageIcon(image.getScaledInstance(imageWidth, imageHeight, Image.SCALE_DEFAULT));
-    	this.setIcon(this.icon);
+		this.setHostname(hostname);
+		this.icon = new ImageIcon(image.getScaledInstance(imageWidth, imageHeight, Image.SCALE_DEFAULT));
+		this.setIcon(this.icon);	
+		this.setType(type);
 	}
-	
-	public void newConnection(){
-		//TODO
+
+	public void addConnection(int co ){
+		//TODO CHECK IF c in NETWORK
+		this.connection.add(co);
 	}
-	public ArrayList<Connection> getConnection(){
-		return this.c;
+
+	public void setType(int type){
+		this.hardwareType = type;
 	}
-	public String getIP(){
-		return this.IP;
-	}	
+	public int getType(){
+		return this.hardwareType;
+	}
+	public ArrayList<Integer> getConnection(){
+		return this.connection;
+	}
+
 	public ImageIcon getIcon(){
 		return this.icon;
 	}
-	public void printConfig() {
-		System.out.println("Config = ");
-	}
 	public int getID() {
-		return ID;
+		return this.ID;
 	}
 	public void setID(int iD) {
-		ID = iD;
+		this.ID = iD;
+	}
+	public SubnetUtils getSubnet(){
+		return this.subNet;
+	}
+	public void setSubNet(SubnetUtils subnet){
+		this.subNet = subnet;
+	}
+	public String getHostname() {
+		return Hostname;
 	}
 
-	public void setIP(String ip) {
-		this.IP = ip;		
-	}
+	public void setHostname(String hostname) {
+		Hostname = hostname;
+	}	
 }

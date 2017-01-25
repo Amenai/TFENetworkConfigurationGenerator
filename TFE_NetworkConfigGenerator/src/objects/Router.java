@@ -2,16 +2,50 @@ package objects;
 
 import java.awt.Toolkit;
 
+import packSystem.HardwaresListS;
+import packSystem.SubnetUtils;
+
 public class Router extends Hardware{
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	private static String ImageFile = "src/router.png";
-	
-	public Router(String network,int code) {		
-		super(network, Toolkit.getDefaultToolkit().getImage(ImageFile),code);
+	private String password = "";
+	private String secret = "";
+	public Router(SubnetUtils subnet,int code) {		
+		super(subnet,subnet.getInfo().getLowAddress(), Toolkit.getDefaultToolkit().getImage(ImageFile),code,HardwaresListS.ROUTER,"R"+(code+1));
 	}
-	
-	public void printConfig() {
-		System.out.println("Config Router = ");
-		//System.out.println(this.IP);
+
+	public void setSecret(String secret) {
+		if(!secret.isEmpty()){
+			System.out.println("MD5 : " + MD5(secret));
+			this.secret = MD5(secret); 
+		}
 	}
+	public String MD5(String md5) {
+		try {
+			java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
+			byte[] array = md.digest(md5.getBytes());
+			StringBuffer sb = new StringBuffer();
+			for (int i = 0; i < array.length; ++i) {
+				sb.append(Integer.toHexString((array[i] & 0xFF) | 0x100).substring(1,3));
+			}
+			return sb.toString();
+		} catch (java.security.NoSuchAlgorithmException e) {
+		}
+		return null;
+	}
+	public void setPassword(String password) {
+		this.password = password;
+
+	}
+	public String getPassword(){
+		return this.password;
+	}
+	public String getSecret(){
+		return this.secret;
+	}
+
 }

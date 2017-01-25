@@ -1,12 +1,11 @@
 package main;
 
-import java.util.Scanner;
-import java.util.regex.Pattern;
-
+import graphique.ConfigurationGUI;
 import graphique.GUI;
-import ip.Ip;
-import tests.SubnetUtils;
-import tests.SubnetUtils.SubnetInfo;
+import objects.Connection;
+import objects.Network;
+import objects.Router;
+import packSystem.SubnetUtils;
 
 /**
  * Classe Main/Lancement du programme
@@ -20,9 +19,6 @@ public class Run{
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		SubnetUtils subnet = SubnetUtils.getIp();
-		new GUI(subnet);
-		
-				
+		new GUI();
 	}
 }

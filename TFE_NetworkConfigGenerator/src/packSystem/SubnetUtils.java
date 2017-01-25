@@ -1,5 +1,7 @@
-package tests;
+package packSystem;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Scanner;
 
 /*
@@ -35,10 +37,7 @@ public class SubnetUtils {
 	/*
 	 * GET SUBNET
 	 */
-	public static SubnetUtils getIp (){
-		Scanner keyboard = new Scanner(System.in);
-		System.out.println("Addresse globale ? ");		
-		String newGlobal = keyboard.next();
+	public static SubnetUtils getIp (String newGlobal){		
 		SubnetUtils ip = new SubnetUtils(newGlobal);
 		System.out.println("IP count : " + ip.getInfo().getAddressCount());
 		System.out.println("Low address : " + ip.getInfo().getLowAddress());
@@ -46,6 +45,7 @@ public class SubnetUtils {
 		System.out.println("Broadcast : " + ip.getInfo().getBroadcastAddress());
 		return ip;
 	}
+
 	private static final String IP_ADDRESS = "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})";
 	private static final String SLASH_FORMAT = IP_ADDRESS + "/(\\d{1,3})";
 	private static final Pattern addressPattern = Pattern.compile(IP_ADDRESS);
@@ -56,6 +56,7 @@ public class SubnetUtils {
 	private int address = 0;
 	private int network = 0;
 	private int broadcast = 0;
+	private HashMap<String, Boolean> freeIP = new HashMap<String, Boolean>();
 
 	/**
 	 * Constructor that takes a CIDR-notation string, e.g. "192.168.0.1/16"
@@ -63,6 +64,9 @@ public class SubnetUtils {
 	 */
 	public SubnetUtils(String cidrNotation) {
 		calculate(cidrNotation);
+		for(String s : this.getInfo().getAllAddresses()){
+			freeIP.put(s, true);
+		}
 	}
 
 	/**
@@ -72,6 +76,9 @@ public class SubnetUtils {
 	 */
 	public SubnetUtils(String address, String mask) {
 		calculate(toCidrNotation(address, mask));
+		for(String s : this.getInfo().getAllAddresses()){
+			freeIP.put(s, true);
+		}
 	}
 
 	/**
@@ -89,7 +96,7 @@ public class SubnetUtils {
 		private int high()          { return broadcast() - 1; }
 
 		public boolean isInRange(String address)    { return isInRange(toInteger(address)); }
-		private boolean isInRange(int address)      { return ((address-low()) <= (high()-low())); }
+		private boolean isInRange(int address)      { return ((address-low()) <= (high()-low()) && (address-low())>=0 ); }
 
 		public String getBroadcastAddress()         { return format(toArray(broadcast())); }
 		public String getNetworkAddress()           { return format(toArray(network())); }
@@ -114,6 +121,38 @@ public class SubnetUtils {
 				addresses[j] = format(toArray(add));
 			}
 			return addresses;
+		}
+
+		public String getNextAddress(String IP) {			
+			return format(toArray(toInteger(IP)+1));
+		}
+
+		public String getFirstFreeIP() {
+			for( String ip : this.getAllAddresses()){
+				if(freeIP.get(ip)){
+					System.out.println("IP = " + ip);
+					freeIP.replace(ip, false);
+					return ip;
+				}
+			}
+			return "0.0.0.0";
+		}
+		public void setIPFree(String ip,boolean bo){
+			freeIP.replace(ip, bo);
+		}
+		public boolean isFree(String ip){
+			return freeIP.get(ip);
+		}
+
+		public ArrayList<String> getAllFreeAddress() {
+			ArrayList<String> free = new ArrayList<String>();
+			for(String key : freeIP.keySet()){
+				if (freeIP.get(key)){
+					free.add(key);
+				}
+
+			}
+			return free;
 		}
 	}
 
