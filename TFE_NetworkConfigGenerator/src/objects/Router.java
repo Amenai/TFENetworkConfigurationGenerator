@@ -2,8 +2,8 @@ package objects;
 
 import java.awt.Toolkit;
 
+import controller.SubnetUtils;
 import packSystem.HardwaresListS;
-import packSystem.SubnetUtils;
 
 public class Router extends Hardware{
 
@@ -14,8 +14,8 @@ public class Router extends Hardware{
 	private static String ImageFile = "src/router.png";
 	private String password = "";
 	private String secret = "";
-	public Router(SubnetUtils subnet,int code) {		
-		super(subnet,subnet.getInfo().getLowAddress(), Toolkit.getDefaultToolkit().getImage(ImageFile),code,HardwaresListS.ROUTER,"R"+(code+1));
+	public Router(String addrs,int code) {		
+		super(addrs, Toolkit.getDefaultToolkit().getImage(ImageFile),code,HardwaresListS.ROUTER,"R"+(code+1));
 	}
 
 	public void setSecret(String secret) {
@@ -24,7 +24,7 @@ public class Router extends Hardware{
 			this.secret = MD5(secret); 
 		}
 	}
-	public String MD5(String md5) {
+	private String MD5(String md5) {
 		try {
 			java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
 			byte[] array = md.digest(md5.getBytes());

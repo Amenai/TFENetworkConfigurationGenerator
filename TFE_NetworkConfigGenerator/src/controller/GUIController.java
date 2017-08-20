@@ -1,4 +1,4 @@
-package graphique;
+package controller;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -14,21 +14,26 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.concurrent.SynchronousQueue;
+
 import javax.swing.JFileChooser;
 import javax.swing.JLayeredPane;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import graphique.GUI;
+import graphique.PCConfigurationGUI;
+import graphique.RouterConfigurationGUI;
+import graphique.SwitchConfigurationGUI;
 import objects.Connection;
 import objects.Hardware;
 import objects.Network;
 import objects.Router;
+import objects.Switch;
 import objects.UserPC;
 import packSystem.ConnectionsTypes;
 import packSystem.HardwaresListS;
-import packSystem.MouseHandler;
-import packSystem.SubnetUtils;
 
 public class GUIController extends JLayeredPane {
 
@@ -36,7 +41,7 @@ public class GUIController extends JLayeredPane {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	protected Network network ; 
+	private Network network = new Network(new SubnetUtils("192.168.0.0/28")); 
 	private boolean showHostname = true;
 	private boolean showInterfaces = true;
 	private int height = 1500;
@@ -44,10 +49,10 @@ public class GUIController extends JLayeredPane {
 	private MouseHandler handler;
 	private Dimension d = new Dimension (height,width);
 	public GUIController() {
-		SubnetUtils adrs = new SubnetUtils("192.168.0.0/28");;
-		this.network= new Network(adrs);
+		SubnetUtils adrs = new SubnetUtils("192.168.0.0/28");
+		network= new Network(new SubnetUtils("192.168.0.0/28"));
 
-		handler = new MouseHandler(getPreferredSize(),this);
+		this.handler = new MouseHandler(getPreferredSize(),this);
 		this.addMouseListener(handler);
 		this.addMouseMotionListener(handler);	
 	}
@@ -57,28 +62,37 @@ public class GUIController extends JLayeredPane {
 		return this.d;
 	}
 
-	public void plusHard(Hardware h){
+	protected void plusHard(Hardware h){
 		this.add(h);
 		this.repaint();
 	}
 	public void plusInterface(int type, int compoID1, int compoID2){
 		if((this.network.getHardware(compoID1).getType() != HardwaresListS.USER_PC) || (this.network.getHardware(compoID2).getType() != HardwaresListS.USER_PC)){
 			if(!isPcAndLinked(compoID1) && !isPcAndLinked(compoID2) ){
-				Connection co2 = new Connection(this.network,type, compoID1, compoID2,this.network.getConnectionCount());
-				if (this.network.getHardware(compoID1).getType() == HardwaresListS.ROUTER){
-					co2.setCompoIP1(this.network.getHardware(compoID1).getSubnet().getInfo().getFirstFreeIP());
-					co2.setCompoIP2((this.network.getHardware(compoID1).getSubnet().getInfo().getFirstFreeIP()));
-					if (this.network.getHardware(compoID2).getType() == HardwaresListS.USER_PC){
-						((UserPC)this.network.getHardware(compoID2)).setIp(co2.getCompoIP2());
+				if(this.network.getSubnet().getInfo().getFirstFreeIP() != "0.0.0.0"){
+					Connection co2 = null;
+					switch(this.network.getHardware(compoID1).getType()) {
+					case  HardwaresListS.ROUTER :
+						co2 = new Connection(this.network,type, compoID1, compoID2,this.network.getCoId());
+						co2.setCompoIP(this.network.getSubnet().getInfo().getFirstFreeIP(),compoID1);
+						co2.setCompoIP(this.network.getSubnet().getInfo().getFirstFreeIP(),compoID2);
+						if (this.network.getHardware(compoID2).getType() == HardwaresListS.USER_PC){
+							((UserPC)this.network.getHardware(compoID2)).setIp(co2.getCompoIP2());
+						}
+						break;
+					case HardwaresListS.USER_PC :
+						co2 = new Connection(this.network,type, compoID2, compoID1,this.network.getCoId());
+						co2.setCompoIP(this.network.getSubnet().getInfo().getFirstFreeIP(),compoID2);
+						co2.setCompoIP(this.network.getSubnet().getInfo().getFirstFreeIP(),compoID1);
+						((UserPC)this.network.getHardware(compoID1)).setIp(co2.getCompoIP2());
+						break;
+					case HardwaresListS.SWITCH :
+						// TODO
+						//Switch na pas d'IP !!
+						break;
 					}
+					this.network.addConnection(compoID1, compoID2, co2);
 				}
-				else {
-					co2.setCompoIP2(this.network.getHardware(compoID2).getSubnet().getInfo().getFirstFreeIP());
-					co2.setCompoIP1((this.network.getHardware(compoID2).getSubnet().getInfo().getFirstFreeIP()));
-					((UserPC)this.network.getHardware(compoID1)).setIp(co2.getCompoIP1());
-				}
-
-				this.network.addConnection(compoID1, compoID2, co2);
 			}
 		}
 	}
@@ -90,12 +104,12 @@ public class GUIController extends JLayeredPane {
 	}
 	@Override
 	public void paint(Graphics g) {
-		if (network.getAllHardwares().size() != this.getComponentCount()){			
-			System.out.println("Autre");
+		super.paint(g);
+		if (network.getAllHardwares().size() != this.getComponentCount()){
 			this.removeAll();
-			for(Hardware a : network.getAllHardwares()){
-				System.out.println("" + a.getHostname());
-				this.add(a);			
+			for(int key : this.network.getAllHardwares().keySet()){
+				System.out.println("" + this.network.getAllHardwares().get(key).getHostname());
+				this.add(this.network.getAllHardwares().get(key));			
 			}
 		}
 		Graphics2D g2D = (Graphics2D) g;
@@ -103,12 +117,11 @@ public class GUIController extends JLayeredPane {
 		g2D.setColor(Color.BLACK);
 		for (int i=0;i < this.getComponentCount();i++){
 			Component comp = this.getComponent(i);
-			//TODO	System.out.println("DD " + comp.getLocation().toString());
 			if (comp instanceof Hardware){
 				Hardware h = (Hardware) comp;						
 
-				for(Connection e : network.getAllConnections()){
-
+				for(int key: this.network.getAllConnections().keySet()){
+					Connection e = this.network.getAllConnections().get(key);
 					g2D.setColor(ConnectionsTypes.getColor(e.getType()));
 					g2D.setStroke(new BasicStroke(3));
 
@@ -125,7 +138,8 @@ public class GUIController extends JLayeredPane {
 					Point pointEnd = this.getMousePosition();
 					g.drawLine(pointStartX,pointStartY, pointEnd.x, pointEnd.y);	 
 				}
-				for(Hardware a : network.getAllHardwares()){
+				for(int key: this.network.getAllHardwares().keySet()){
+					Hardware a = this.network.getAllHardwares().get(key);
 					a.getIcon().paintIcon(this, g, a.getLocation().x, a.getLocation().y);
 				}
 				if(showHostname){
@@ -134,14 +148,15 @@ public class GUIController extends JLayeredPane {
 					g2D.drawString(h.getHostname(), h.getLocation().x,h.getLocation().y);
 				}		
 				if(showInterfaces){
-					for(Connection e : network.getAllConnections()){
+					for(int key : this.network.getAllConnections().keySet()){
+						Connection e = this.network.getAllConnections().get(key);
 						g2D.setColor(ConnectionsTypes.getColor(e.getType()));
 						Point2D p1 = new Point2D.Double(this.network.getAllHardwares().get(e.getFirstCompo()).getX()+(h.getIcon().getIconWidth()/2), this.network.getAllHardwares().get(e.getFirstCompo()).getY()+(h.getIcon().getIconWidth()/2));
 						Point2D p2 = new Point2D.Double(this.network.getAllHardwares().get(e.getSecondCompo()).getX()+(h.getIcon().getIconWidth()/2), this.network.getAllHardwares().get(e.getSecondCompo()).getY()+(h.getIcon().getIconWidth()/2));
 						Point2D co1 = calculateCoord(p1,p2);
 						Point2D co2 = calculateCoord(p2,p1);
-						drawCenteredCircle(g,(int)co1.getX(),(int)co1.getY());					
-						drawCenteredCircle(g,(int)co2.getX(),(int)co2.getY());
+						GUI.drawCenteredCircle(g,(int)co1.getX(),(int)co1.getY());					
+						GUI.drawCenteredCircle(g,(int)co2.getX(),(int)co2.getY());
 						g2D.setColor(Color.BLACK);
 						g2D.setFont(new Font("TimesRoman", Font.PLAIN, 15));
 						g2D.drawString(e.getCompoIP1(), (int)co1.getX(), (int)co1.getY());
@@ -149,19 +164,12 @@ public class GUIController extends JLayeredPane {
 					}
 				}
 
-
 			}
-
 			//Paint le reste
 			//super.paint(g); 
 		}
 	}
-	public void drawCenteredCircle(Graphics g, int d, int e) {
-		d = d-(6/2);
-		e = e-(6/2);
-		g.drawOval(d,e,6,6);
-	}
-	public Point2D calculateCoord(Point2D s, Point2D e){
+	private Point2D calculateCoord(Point2D s, Point2D e){
 		Point p = null;
 		int coordx = 0;
 		int coordy = 0;
@@ -197,15 +205,26 @@ public class GUIController extends JLayeredPane {
 	}	
 
 	public void plusNewRouter(int x, int y) {
-		Router router = new Router(this.network.getSubnet(),this.network.getHardwaresCount());
-		router.setHostname("R"+(this.network.getHardwaresCount()+1));
+		int count = this.network.getFreeHardwareCount();
+		Router router = new Router(this.network.getSubnet().getInfo().getLowAddress(),count);
+		router.setHostname("R"+(count+1));
 		this.network.addHardware(router, new Point(x, y));
 		router.setSize(new Dimension(router.getIcon().getIconWidth(), router.getIcon().getIconHeight()));
 		super.repaint();
 	}
+	public void plusNewSwitch(int x, int y) {
+		int count = this.network.getFreeHardwareCount();
+		Switch switc = new Switch(this.network.getSubnet().getInfo().getLowAddress(),count);
+		switc.setHostname("S"+(count+1));
+		this.network.addHardware(switc, new Point(x, y));
+		switc.setSize(new Dimension(switc.getIcon().getIconWidth(), switc.getIcon().getIconHeight()));
+		super.repaint();
+
+	}
 	public void plusNewUser(int x, int y) {
-		UserPC user = new UserPC(this.network.getSubnet(),this.network.getHardwaresCount());
-		user.setHostname("U"+(this.network.getHardwaresCount()+1));
+		int count = this.network.getFreeHardwareCount();
+		UserPC user = new UserPC(this.network.getSubnet().getInfo().getLowAddress(),count);
+		user.setHostname("U"+(count+1));
 		this.network.addHardware(user, new Point(x, y));
 		user.setSize(new Dimension(user.getIcon().getIconWidth(), user.getIcon().getIconHeight()));
 		super.repaint();
@@ -251,10 +270,10 @@ public class GUIController extends JLayeredPane {
 			System.out.println("IP = " + ip);
 			this.network.load(networkJSON);
 		}catch (Exception e) {
-			// TODO: handle exception
 			e.printStackTrace();
 		}
-		for (Hardware hardwares : this.network.getAllHardwares()){
+		for (int key : this.network.getAllHardwares().keySet()){
+			Hardware hardwares = this.network.getAllHardwares().get(key);
 			hardwares.setSize(new Dimension(hardwares.getIcon().getIconWidth(), hardwares.getIcon().getIconHeight()));  	
 		}
 		//this.network= n;
@@ -263,11 +282,11 @@ public class GUIController extends JLayeredPane {
 
 	public void newNetwork() {
 		System.out.println("NEW");
-
+		String subnet = packSystem.Messages.askStringValue("Nouveau subnet");
 		try {
 			//{"IP":"192.168.0.0\/24","connections":[],"hardwares":[]}
 			JSONObject networkJSON = new JSONObject();
-			networkJSON.put("IP", "192.168.0.0/24");
+			networkJSON.put("IP", subnet);
 			JSONArray conJSON = new JSONArray();
 			networkJSON.put("connections", conJSON);
 			networkJSON.put("hardwares", conJSON);
@@ -276,17 +295,21 @@ public class GUIController extends JLayeredPane {
 			System.out.println("IP = " + ip);
 			this.network.load(networkJSON);
 		}catch (Exception e) {
-			// TODO: handle exception
 			e.printStackTrace();
 		}
 		repaint();
 	}
-	public void showConfig(Hardware draggy) {
-		new ConfigurationGUI(network, draggy);
+	public void showRouterConfig(Router draggy) {
+		new RouterConfigurationGUI(network, draggy);
 		this.repaint();
 	}
-	public void showPCConfig(Hardware draggy) {
-		new ConfigurationGUI(network, draggy);
+	public void showPCConfig(UserPC draggy) {
+		new PCConfigurationGUI(network, draggy);
 		this.repaint();
 	}
+	public void showSwitchConfig(Switch draggy) {
+		new SwitchConfigurationGUI(network, draggy);
+		this.repaint();
+	}
+
 }

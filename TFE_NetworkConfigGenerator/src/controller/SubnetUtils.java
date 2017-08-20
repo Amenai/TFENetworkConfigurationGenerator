@@ -1,8 +1,9 @@
-package packSystem;
+package controller;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Scanner;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.TreeMap;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -24,7 +25,7 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ip.Ip;
+import packSystem.Messages;
 
 /**
  * A class that performs some subnet calculations given a network address and a subnet mask. 
@@ -37,7 +38,7 @@ public class SubnetUtils {
 	/*
 	 * GET SUBNET
 	 */
-	public static SubnetUtils getIp (String newGlobal){		
+	public static SubnetUtils getIp (String newGlobal){
 		SubnetUtils ip = new SubnetUtils(newGlobal);
 		System.out.println("IP count : " + ip.getInfo().getAddressCount());
 		System.out.println("Low address : " + ip.getInfo().getLowAddress());
@@ -56,7 +57,20 @@ public class SubnetUtils {
 	private int address = 0;
 	private int network = 0;
 	private int broadcast = 0;
-	private HashMap<String, Boolean> freeIP = new HashMap<String, Boolean>();
+	private Map<String, Boolean> freeIP = new TreeMap<String, Boolean>(new Comparator<String>() {
+		public int compare(String ip1, String ip2) {
+			// TODO 
+			String[] tIP1 = (ip1.split("\\."));
+			String[] tIP2 = (ip2.split("\\."));    	
+			for (int i = (tIP1.length-1);i>=0;i--){
+				int comp = Integer.compare(Integer.parseInt(tIP1[i]), Integer.parseInt(tIP2[i]));
+				if(comp != 0){
+					return Integer.compare(Integer.parseInt(tIP1[i]), Integer.parseInt(tIP2[i]));
+				}	    		
+			}
+			return 0;
+		}
+	});;
 
 	/**
 	 * Constructor that takes a CIDR-notation string, e.g. "192.168.0.1/16"
@@ -67,6 +81,7 @@ public class SubnetUtils {
 		for(String s : this.getInfo().getAllAddresses()){
 			freeIP.put(s, true);
 		}
+
 	}
 
 	/**
@@ -130,11 +145,10 @@ public class SubnetUtils {
 		public String getFirstFreeIP() {
 			for( String ip : this.getAllAddresses()){
 				if(freeIP.get(ip)){
-					System.out.println("IP = " + ip);
-					freeIP.replace(ip, false);
 					return ip;
 				}
 			}
+			packSystem.Messages.showErrorMessage("No available IP");
 			return "0.0.0.0";
 		}
 		public void setIPFree(String ip,boolean bo){

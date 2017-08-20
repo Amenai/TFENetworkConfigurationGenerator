@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 
+import controller.SubnetUtils;
 import packSystem.HardwaresListS;
-import packSystem.SubnetUtils;
 
 public abstract class Hardware extends JLabel {
 	/**
@@ -19,12 +19,10 @@ public abstract class Hardware extends JLabel {
 
 	private ArrayList<Integer> connection = new ArrayList<Integer>(); 
 	private ImageIcon icon ; //  TODO Default Image
-	private SubnetUtils subNet ;
 	private String Hostname = "Defaut";
 	private int ID;
 	private int hardwareType = HardwaresListS.DEFAUT;
-	public Hardware(SubnetUtils network,String ip,Image image,int code,int type,String hostname) {
-		this.setSubNet(network);
+	public Hardware(String ip,Image image,int code,int type,String hostname) {
 		this.setID(code);
 		this.setHostname(hostname);
 		this.icon = new ImageIcon(image.getScaledInstance(imageWidth, imageHeight, Image.SCALE_DEFAULT));
@@ -32,9 +30,11 @@ public abstract class Hardware extends JLabel {
 		this.setType(type);
 	}
 
-	public void addConnection(int co ){
-		//TODO CHECK IF c in NETWORK
-		this.connection.add(co);
+	protected void addConnection(int co ){
+		this.connection.add(Integer.valueOf(co));
+	}
+	protected void deleteConnection(int co){
+		this.connection.remove(Integer.valueOf(co));
 	}
 
 	public void setType(int type){
@@ -55,12 +55,6 @@ public abstract class Hardware extends JLabel {
 	}
 	public void setID(int iD) {
 		this.ID = iD;
-	}
-	public SubnetUtils getSubnet(){
-		return this.subNet;
-	}
-	public void setSubNet(SubnetUtils subnet){
-		this.subNet = subnet;
 	}
 	public String getHostname() {
 		return Hostname;

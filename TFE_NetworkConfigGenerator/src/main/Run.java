@@ -1,11 +1,11 @@
 package main;
 
-import graphique.ConfigurationGUI;
+import graphique.RouterConfigurationGUI;
+import controller.SubnetUtils;
 import graphique.GUI;
 import objects.Connection;
 import objects.Network;
 import objects.Router;
-import packSystem.SubnetUtils;
 
 /**
  * Classe Main/Lancement du programme

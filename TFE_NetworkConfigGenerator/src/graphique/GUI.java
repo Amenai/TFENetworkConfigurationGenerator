@@ -25,11 +25,12 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.RepaintManager;
 
+import controller.GUIController;
+import controller.SubnetUtils;
 import objects.ControlButton;
 import objects.Hardware;
 import packSystem.HardwaresListS;
 import packSystem.MouseTypes;
-import packSystem.SubnetUtils;
 
 public class GUI implements ActionListener {
 	protected JMenuItem exit = new JMenuItem("Exit");
@@ -70,6 +71,8 @@ public class GUI implements ActionListener {
 				JMenuBar menuBar = new JMenuBar();
 				ControlButton routerButton = new ControlButton(Toolkit.getDefaultToolkit().getImage("src/router.png"),MouseTypes.MOUSE_ROUTER);
 				routerButton.setToolTipText("Router");
+				ControlButton switchButton = new ControlButton(Toolkit.getDefaultToolkit().getImage("src/switch.png"),MouseTypes.MOUSE_SWITCH);
+				switchButton.setToolTipText("Switch");
 				ControlButton userButton = new ControlButton(Toolkit.getDefaultToolkit().getImage("src/pc.png"),MouseTypes.MOUSE_USER);	
 				userButton.setToolTipText("User PC");
 				ControlButton defaultMouse = new ControlButton(Toolkit.getDefaultToolkit().getImage("src/mouse.png"),MouseTypes.MOUSE_DEFAULT);	
@@ -87,6 +90,7 @@ public class GUI implements ActionListener {
 				controlPanel.add(defaultMouse);
 				controlPanel.add(deleteMouse);	
 				controlPanel.add(routerButton);
+				controlPanel.add(switchButton);
 				controlPanel.add(userButton);				
 				controlPanel.add(serialIntButton);		
 				controlPanel.add(etherIntButton);		
@@ -112,10 +116,11 @@ public class GUI implements ActionListener {
 
 					@Override
 					public void actionPerformed(ActionEvent arg0) {
-						controller.changeMouse(((ControlButton)arg0.getSource()).getType());					
+						controller.changeMouse(((ControlButton)arg0.getSource()).getType());
 					}
 				};
 				routerButton.addActionListener(controllerAction);
+				switchButton.addActionListener(controllerAction);
 				userButton.addActionListener(controllerAction);
 				defaultMouse.addActionListener(controllerAction);
 				deleteMouse.addActionListener(controllerAction);
@@ -145,10 +150,10 @@ public class GUI implements ActionListener {
 					@Override
 					public void actionPerformed(ActionEvent arg0) {
 						boolean confirm = packSystem.Messages.confirm("Etes vous sur de vouloir reset l'interface ? ");
-						if (confirm) {
+						if (confirm) {							
 							controller.newNetwork();
 						}
-												
+
 					}
 				});
 				menuF.addSeparator();
@@ -198,5 +203,13 @@ public class GUI implements ActionListener {
 	}
 	public void changingTitle(String title){
 		frame.setTitle(title);
+	}
+	public static void drawCenteredCircle(Graphics g, int d, int e) {
+		d = d-(6/2);
+		e = e-(6/2);
+		g.drawOval(d,e,6,6);
+	}
+	public void paint(){
+		this.frame.repaint();
 	}
 }

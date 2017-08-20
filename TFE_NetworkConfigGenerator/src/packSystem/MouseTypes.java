@@ -8,4 +8,5 @@ public class MouseTypes {
 	public static final int MOUSE_DEFAULT = 4;
 	public static final int MOUSE_ROUTER = 5;
 	public static final int MOUSE_USER= 6;
+	public static final int MOUSE_SWITCH= 7;
 }

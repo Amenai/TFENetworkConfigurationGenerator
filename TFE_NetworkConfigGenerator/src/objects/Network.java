@@ -2,21 +2,22 @@ package objects;
 
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.HashMap;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import controller.SubnetUtils;
 import packSystem.ConnectionsTypes;
 import packSystem.HardwaresListS;
-import packSystem.SubnetUtils;
 
 public class Network {
 
-	private SubnetUtils network;
+	private SubnetUtils network; // UN SEUL VLAN
 	private boolean firstIPRouter = true;
-	private ArrayList<Hardware> HardwaresList = new ArrayList<>();
-	private ArrayList<Connection> Connections  = new ArrayList<>();
-	private String[] FreeIp ;
-	private int IpCount = 0;
+	private HashMap<Integer,Hardware> hardwaresList = new HashMap<Integer,Hardware>();
+	private HashMap<Integer,Connection> connectionsList  = new HashMap<Integer,Connection>();
+	private String[] freeIp ;
 
 	public Network(SubnetUtils newGlobal) {
 		this.network = newGlobal;
@@ -25,13 +26,33 @@ public class Network {
 
 	public void addHardware(Hardware r,Point location) {
 		r.setLocation(location);
-		HardwaresList.add(r);
-		IpCount++;	
+		hardwaresList.put(r.getID(),r);
 	}
-
+	public void removeHard(int id) {
+		Hardware deleting = this.getHardware(id);
+		ArrayList<Connection> tab = this.getConnectionsof(id);
+		for(int i = 0;i<tab.size();i++){
+			removeConnection(tab.get(i));
+		}
+		this.hardwaresList.remove(deleting.getID());
+		
+	}
+	/**
+	 * TODO
+	 * SEULEMENT 1 SEUL ! entre chaque
+	 * Interface utilisée ont besoin d'un "NO SHUTDOWN" pour fonctionner.
+	 * @param harwareID
+	 * @return
+	 */
 	public String printConfig(int harwareID) {
 		ArrayList<Connection> allConnections = this.getConnectionsof(harwareID);
-		String config = "Configuration" + "\n";
+		Router r = (Router)this.getHardware(harwareID);
+		String config = HardwaresListS.CONF1;
+		config+= "hostname " +r.getHostname()+ "\n";
+		config+= HardwaresListS.CONF2;
+		config+= "enable secret" + r.getSecret() + "\n";
+		config+= "enable password " + r.getPassword()+ "\n";
+		config+= HardwaresListS.CONF3;
 		for(Connection c : allConnections){
 			config += "interface " + c.getCompoName(harwareID) + "\n";
 			if(harwareID == c.getFirstCompo()){
@@ -41,116 +62,113 @@ public class Network {
 				config += "ip address " + c.getCompoIP2() +" "+ c.getSubnetwork().getInfo().getNetmask().toString() + "\n";			
 			}
 		}
+		config+= HardwaresListS.CONF4;
 		return config;
 	}
 
-	public ArrayList<Hardware> getAllHardwares() { 
-		return HardwaresList;
+	public HashMap<Integer,Hardware> getAllHardwares() {
+		return hardwaresList;
 	}
 	public Hardware getHardware(int e){
-		return HardwaresList.get(e);
+		return hardwaresList.get(e);
 	}
 	public String[] getFreeIp() {
-		return FreeIp;
+		return freeIp;
 	}
 
 	public void setFreeIp(String[] freeIp) {
-		this.FreeIp = freeIp;
+		this.freeIp = freeIp;
 	}
 
 	public ArrayList<Connection> getConnections(ArrayList<Integer> connection) {
 		ArrayList<Connection> tabC = new ArrayList<Connection>();
 		for(int i=0;i<connection.size();i++){
-			for (Connection c : this.Connections) {
-				if (c.getConnectionID() == connection.get(i)){
-					tabC.add(c);
+			for (int key : this.connectionsList.keySet()) {
+				if (this.connectionsList.get(key).getConnectionID() == connection.get(i)){
+					tabC.add(this.connectionsList.get(key));
 				}
 			}			
 		}
 		return tabC;
 	}
 
-	public void addConnection(int r1ID, int r2ID, Connection co) {
-		this.Connections.add(co);
-		setLinked(r1ID, co);
-		setLinked(r2ID, co);		
+	public void addConnection(int h1ID, int h2ID, Connection co) {
+		this.connectionsList.put(co.getConnectionID(),co);
+		if((this.hardwaresList.get(h1ID).getType()) == HardwaresListS.USER_PC){	
+			setLinked(h2ID, co);
+			setLinked(h1ID, co);
+		}
+		else{
+			setLinked(h1ID, co);
+			setLinked(h2ID, co);
+		}
 	}
+	public void removeConnection(Connection co){
+		System.out.println("REMOVE : " + co.getConnectionID() + ": " + co.getCompoIP1() +"/" + co.getCompoIP2());
+		this.connectionsList.remove(co.getConnectionID());
+		co.remove();
+		if(this.hardwaresList.get(co.getSecondCompo()).getType() == HardwaresListS.USER_PC){		
+			System.out.println("RESET");
+			((UserPC)this.hardwaresList.get(co.getSecondCompo())).reset();
+		}
+		if(this.hardwaresList.get(co.getFirstCompo()).getType() == HardwaresListS.USER_PC){		
+			System.out.println("RESET");
+			((UserPC)this.hardwaresList.get(co.getFirstCompo())).reset();
+		}
+		deleteLink(co.getFirstCompo(),co.getConnectionID());
+		deleteLink(co.getSecondCompo(),co.getConnectionID());
+	}
+
 	private void setLinked(int compo,Connection co){
-		if(this.HardwaresList.get(compo).getType() == HardwaresListS.USER_PC){		
-			((UserPC)this.HardwaresList.get(compo)).setLinked(true);
-			if (this.HardwaresList.get(compo).getID() == co.getFirstCompo()){
-				((UserPC)this.HardwaresList.get(compo)).setGateway(co.getCompoIP2());	
-			}
-			else {
-				((UserPC)this.HardwaresList.get(compo)).setGateway(co.getCompoIP2());
+		if(this.hardwaresList.get(compo).getType() == HardwaresListS.USER_PC){
+			((UserPC)this.hardwaresList.get(compo)).setLinked(true);
+			((UserPC)this.hardwaresList.get(compo)).setGateway(co.getCompoIP1());
+		}
+		this.hardwaresList.get(compo).addConnection(co.getConnectionID());
+	}
+	private void deleteLink(int compo,int co) {
+		this.hardwaresList.get(compo).deleteConnection(co);
+	}
+	public  HashMap<Integer,Connection> getAllConnections() {		
+		return this.connectionsList;
+	}
+	public int getCoId() {
+		for(int i=0;i<this.connectionsList.size();i++){
+			if (this.connectionsList.get(i) == null){
+				System.out.println("I="+i);
+				return i;
 			}
 		}
-		this.HardwaresList.get(compo).addConnection(co.getConnectionID());
+		return this.connectionsList.size();
 	}
-	public int getConnectionCount(){
-		return this.Connections.size();
-	}
-	public int getHardwaresCount(){
-		return this.HardwaresList.size();
-	}
-
-	public ArrayList<Connection> getAllConnections() {		
-		return this.Connections;
-	}
-
 	public ArrayList<Connection> getConnectionsof(int compoID){
 		ArrayList<Connection> result = new ArrayList<Connection> ();
-		for(Connection c : this.Connections){
-			if (c.getFirstCompo() == compoID || c.getSecondCompo() == compoID){
-				result.add(c);
+		for(int key : this.connectionsList.keySet()){
+			if (this.connectionsList.get(key).getFirstCompo() == compoID || this.connectionsList.get(key).getSecondCompo() == compoID){
+				result.add(this.connectionsList.get(key));
 			}
 		}
 		return result;
 	}
-	public void removeHard(int id) {	
-		Hardware deleting = this.getHardware(id);	
-		for(Connection i : this.getConnectionsof(id)){		
-			this.Connections.remove(getConnectionIndex(i.getConnectionID()));
-		}
-		this.HardwaresList.remove(getHardwareIndex(deleting.getID()));
-	}
-	private int getHardwareIndex(int id) {
-		int index = 0;
-		for(index=0;index < this.HardwaresList.size();index++){
-			if (this.HardwaresList.get(index).getID() == id){
-				return index;	
-			}
-		}
-		return index;
-	}
 
-	private int getConnectionIndex(int id) {
-		int index = 0;
-		for(index=0;index < this.Connections.size();index++){
-			if (this.Connections.get(index).getConnectionID() == id){
-				return index;
-			}
-		}
-		return index;
-	}
 
 	public void load(JSONObject networkJSON){
 		String ip = (String) networkJSON.get("IP");
 		this.network = new SubnetUtils(ip);
-		this.HardwaresList = new ArrayList<>();
-		this.Connections  = new ArrayList<>();
+		this.hardwaresList = new HashMap<Integer,Hardware>();
+		this.connectionsList  = new HashMap<Integer,Connection>();
 		JSONArray hardwaresJSON = (JSONArray) networkJSON.get("hardwares");
 		for(int i =0;i<hardwaresJSON.size();i++){
 			JSONObject h = (JSONObject) hardwaresJSON.get(i);
 			Hardware r ;
 			if ((int)(long)h.get("type") == HardwaresListS.USER_PC){
-				r = new UserPC(network, this.HardwaresList.size());
+				r = new UserPC(network.getInfo().getLowAddress(), this.hardwaresList.size());
 				((UserPC)r).setGateway((String)h.get("gateway"));
 				((UserPC)r).setLinked((Boolean)h.get("linked"));
 				((UserPC)r).setIp((String)h.get("ip"));
 			}
 			else {
-				r = new Router(network,this.HardwaresList.size());
+				r = new Router(network.getInfo().getLowAddress(),this.hardwaresList.size());
 				((Router)r).setSecret((String)h.get("secret"));
 				((Router)r).setPassword((String)h.get("password"));				
 			}
@@ -165,11 +183,11 @@ public class Network {
 		for(int i =0;i<connectionJSON.size();i++){
 			JSONObject c = (JSONObject) connectionJSON.get(i);
 
-			Connection co = new Connection(this,(int)(long)c.get("type"), (int)(long)c.get("compoID1"),(int)(long) c.get("compoID2"),this.Connections.size());
+			Connection co = new Connection(this,(int)(long)c.get("type"), (int)(long)c.get("compoID1"),(int)(long) c.get("compoID2"),this.connectionsList.size());
 			co.setCompoName(co.getFirstCompo(), (String) c.get("nameID1"));
 			co.setCompoName(co.getSecondCompo(), (String) c.get("nameID2"));
-			co.setCompoIP1((String)c.get("compoIP1"));
-			co.setCompoIP2((String)c.get("compoIP2"));
+			co.setCompoIP((String)c.get("compoIP1"),(int)c.get("compoID1"));
+			co.setCompoIP((String)c.get("compoIP2"),(int)c.get("compoID2"));
 			co.setCompoName(co.getFirstCompo(),(String) c.get("compoName1"));
 			co.setCompoName(co.getSecondCompo(),(String) c.get("compoName2"));
 			this.addConnection((int)(long)c.get("compoID1"), (int)(long) c.get("compoID2"), co);	
@@ -181,7 +199,8 @@ public class Network {
 
 		networkJSON.put("IP", network.getInfo().getCidrSignature());
 		JSONArray hardwaresJSON = new JSONArray();
-		for(Hardware h : HardwaresList){
+		for(int key: this.hardwaresList.keySet()){
+			Hardware h = this.hardwaresList.get(key);
 			JSONObject hJSON = new JSONObject();
 			if (h.getType() == HardwaresListS.ROUTER){				
 				hJSON.put("secret",((Router) h).getSecret());
@@ -201,7 +220,8 @@ public class Network {
 			hardwaresJSON.add(hJSON);
 		}
 		JSONArray connectionJSON = new JSONArray();
-		for(Connection c : Connections){
+		for(int key: this.connectionsList.keySet()){
+			Connection c = this.connectionsList.get(key);
 			JSONObject cJSON = new JSONObject();
 			cJSON.put("connectionID", c.getConnectionID());
 			cJSON.put("type",c.getType());
@@ -237,5 +257,26 @@ public class Network {
 
 	public SubnetUtils getSubnet() {
 		return this.network;
+	}
+
+	public int getFreeHardwareCount() {
+		if (hardwaresList.isEmpty() == false) {
+			for (int i = 0; i <= hardwaresList.size(); i++) {
+				if (hardwaresList.containsKey(i) == false) {
+					System.out.println("COUNT = " + i);
+					return i;
+				}
+			}
+		}
+		System.out.println("COUNT "+hardwaresList.size());
+		return hardwaresList.size();
+	}
+
+	public boolean isFirstIPRouter() {
+		return firstIPRouter;
+	}
+
+	public void setFirstIPRouter(boolean firstIPRouter) {
+		this.firstIPRouter = firstIPRouter;
 	}
 }

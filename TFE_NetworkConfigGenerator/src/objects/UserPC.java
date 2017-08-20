@@ -2,8 +2,8 @@ package objects;
 
 import java.awt.Toolkit;
 
+import controller.SubnetUtils;
 import packSystem.HardwaresListS;
-import packSystem.SubnetUtils;
 
 public class UserPC extends Hardware{
 
@@ -15,8 +15,8 @@ public class UserPC extends Hardware{
 	private String gateway = "0.0.0.0";
 	private boolean isLinked = false;
 	private String IP = "0.0.0.0";
-	public UserPC(SubnetUtils network,int code) {
-		super(network,network.getInfo().getLowAddress(),Toolkit.getDefaultToolkit().getImage(ImageFile),code,HardwaresListS.USER_PC,"U"+(code+1));
+	public UserPC(String addrs,int code) {
+		super(addrs,Toolkit.getDefaultToolkit().getImage(ImageFile),code,HardwaresListS.USER_PC,"U"+(code+1));
 	}
 	public String getGateway() {
 		return this.gateway;
@@ -34,11 +34,13 @@ public class UserPC extends Hardware{
 		return this.IP ;
 	}	
 	public boolean setIp(String ip){
-		SubnetUtils sub = this.getSubnet();
-		if (sub.getInfo().isInRange(ip)){
+		/*TODO*/
 			this.IP = ip;
 			return true;
-		}
-		return false;
+	}
+	public void reset(){
+		this.gateway = "0.0.0.0";
+		this.isLinked = false;
+		this.IP = "0.0.0.0";
 	}
 }

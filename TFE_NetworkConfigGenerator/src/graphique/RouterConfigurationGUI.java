@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -25,7 +26,10 @@ import javax.swing.JPanel;
 import javax.swing.JSeparator;
 import javax.swing.JTextField;
 import javax.swing.RepaintManager;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 
+import controller.SubnetUtils;
 import objects.Connection;
 import objects.Hardware;
 import objects.Network;
@@ -33,10 +37,14 @@ import objects.Router;
 import objects.UserPC;
 import packSystem.ConnectionsTypes;
 import packSystem.HardwaresListS;
+import packSystem.HeadsTable;
 import packSystem.Messages;
-import packSystem.SubnetUtils;
 
-public class ConfigurationGUI implements ActionListener {
+public class RouterConfigurationGUI implements ActionListener {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	private JButton Save = new JButton("Save");
 	private JButton Generate = new JButton("Generate"); 
 	private JLabel hostname = new JLabel("Hostname");
@@ -45,22 +53,22 @@ public class ConfigurationGUI implements ActionListener {
 	private JLabel password = new JLabel("Password");
 	private JTextField passwordEdit = new JTextField();
 	private JTextField hostnameEdit = new JTextField();
-	private JLabel gateway = new JLabel("Gateway");
-	private JLabel gatewayIP = new JLabel("");
-	private JLabel ip = new JLabel("Ip");
-	private JTextField ipEdit = new JTextField();
 	private ArrayList<InterfacePanel> panels = new ArrayList<InterfacePanel>();
 	private JFrame frame = new JFrame();
-	private boolean isRouter = false;
-	public ConfigurationGUI(Network n,Hardware draggy) {
+	private InterfacePanel p;
+	private HeadsTable headNum = new HeadsTable("Num",50);
+	private HeadsTable headName = new HeadsTable("Name",100);
+	private HeadsTable headIP = new HeadsTable("IP",100);
+	private HeadsTable headMasque = new HeadsTable("Masque",100);
+	private HeadsTable headType = new HeadsTable("Type",100);
+	private HeadsTable headDelete = new HeadsTable("Delete",50);
+
+	public RouterConfigurationGUI(Network n,Router draggy) {
 		EventQueue.invokeLater(new Runnable() {
 			@Override
 			public void run() {
 				// Turn off double buffering
-				draggy.getType();
-				if (draggy.getType() == HardwaresListS.ROUTER){isRouter=true;}
 				RepaintManager.currentManager(null).setDoubleBufferingEnabled(false);
-
 				frame = new JFrame(draggy.getHostname());
 				frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 				frame.setLayout(new GridBagLayout());      
@@ -78,57 +86,59 @@ public class ConfigurationGUI implements ActionListener {
 				hostnameEdit.setText(draggy.getHostname());				
 				frame.add(host, gbc);
 				gbc.gridy++;
-				if(isRouter){
-					JPanel secretP = new JPanel();
-					secretP.add(secret);
-					secretP.add(secretEdit);
-					secret.setPreferredSize(new Dimension(100, 25));
-					secretEdit.setPreferredSize(new Dimension(100, 25));
-					String sec = ((Router)draggy).getSecret();
-					if(!sec.isEmpty()){
-						sec = "******";
-					}
-					secretEdit.setText(sec);				
-					frame.add(secretP, gbc);
+				JPanel secretP = new JPanel();
+				secretP.add(secret);
+				secretP.add(secretEdit);
+				secret.setPreferredSize(new Dimension(100, 25));
+				secretEdit.setPreferredSize(new Dimension(100, 25));
+				String sec = (draggy).getSecret();
+				if(!sec.isEmpty()){
+					sec = "******";
+				}
+				secretEdit.setText(sec);				
+				frame.add(secretP, gbc);
+				gbc.gridy++;
+				JPanel passwordP = new JPanel();
+				passwordP.add(password);
+				passwordP.add(passwordEdit);
+				password.setPreferredSize(new Dimension(100, 25));
+				passwordEdit.setPreferredSize(new Dimension(100, 25));
+				passwordEdit.setText((draggy).getPassword());				
+				frame.add(passwordP, gbc);
+				gbc.gridy++;				
+				if(!(n.getConnections(draggy.getConnection()).isEmpty())){
+					//TODO
+					JPanel heads = new JPanel();
+					heads.setLayout(new GridBagLayout());
+					GridBagConstraints gribC = new GridBagConstraints();
+					gribC.gridx = 0;
+					gribC.gridy = 0;
+					heads.add(headNum, gribC);
+					gribC.gridx++;
+					heads.add(headName, gribC);
+					gribC.gridx++;
+					heads.add(headIP, gribC);
+					gribC.gridx++;
+					heads.add(headMasque, gribC);
+					gribC.gridx++;
+					heads.add(headType, gribC);
+					gribC.gridx++;
+					heads.add(headDelete, gribC);
+					frame.add(heads, gbc);
 					gbc.gridy++;
-					JPanel passwordP = new JPanel();
-					passwordP.add(password);
-					passwordP.add(passwordEdit);
-					password.setPreferredSize(new Dimension(100, 25));
-					passwordEdit.setPreferredSize(new Dimension(100, 25));
-					passwordEdit.setText(((Router)draggy).getPassword());				
-					frame.add(passwordP, gbc);
-					gbc.gridy++;
-					int i = 1;
+					int i = 1;	
 					for( Connection c : n.getConnections(draggy.getConnection())){    
-						InterfacePanel p = new  InterfacePanel(c,i,draggy.getID());
+						p = new  InterfacePanel(c,i,draggy,n);
 						panels.add(p);
 						frame.add(p,gbc);
 						gbc.gridy++;
 						i++;
 					}
-					gbc.gridy++;
-					frame.add(new JSeparator(), gbc);
 				}
-				else {
-					JPanel ipP = new JPanel();
-					ipP.add(ip);
-					ipP.add(ipEdit);
-					ip.setPreferredSize(new Dimension(100, 25));
-					ipEdit.setPreferredSize(new Dimension(100, 25));
-					ipEdit.setText(((UserPC)draggy).getIP());
-					frame.add(ipP, gbc);
-					gbc.gridy++;
+				gbc.gridy++;
+				frame.add(new JSeparator(), gbc);
 
-					JPanel gatewayP = new JPanel();
-					gatewayP.add(gateway);
-					gatewayP.add(gatewayIP);
-					gatewayIP.setText(((UserPC)draggy).getGateway());
-					gateway.setPreferredSize(new Dimension(100, 25));
-					gatewayIP.setPreferredSize(new Dimension(100, 25));
-					frame.add(gatewayP, gbc);
-					gbc.gridy++;
-				}
+
 
 				JPanel panel = new JPanel(new GridLayout(1,3));				
 				panel.add(Save);			
@@ -139,15 +149,22 @@ public class ConfigurationGUI implements ActionListener {
 						int index = 0;
 						boolean noError = true;
 						draggy.setHostname(hostnameEdit.getText());
-						if(isRouter){					
-							if (!(secretEdit.getText().equals("******"))){
-								((Router)draggy).setSecret(secretEdit.getText());
-							}						
-							((Router)draggy).setPassword(passwordEdit.getText());
-							for( Connection c : n.getConnections(draggy.getConnection())){
-								InterfacePanel p =  panels.get(index);
-								if (c.getFirstCompo() == draggy.getID()){
-									if(!(c.setCompoIP1(p.getIp()))){
+
+						if (!(secretEdit.getText().equals("******"))){
+							(draggy).setSecret(secretEdit.getText());
+						}
+						(draggy).setPassword(passwordEdit.getText());
+						for( Connection c : n.getConnectionsof(draggy.getID())){
+							InterfacePanel p =  panels.get(index);
+							if(p.getDeleteBox()){
+								if(packSystem.Messages.confirm("" + p.getIp() + " va être supprimée, êtes vous sûr ? ")){
+									n.removeConnection(c);
+								}
+							}
+							else{
+								//TODO if mask change : check IP in MASK
+								if(checkConnectionChange(c,n)){
+									if(!(c.setCompoIP(p.getIp(),draggy.getID()))){
 										packSystem.Messages.showErrorMessage("Problème IP");
 										noError = false;
 									}
@@ -155,72 +172,61 @@ public class ConfigurationGUI implements ActionListener {
 										if(n.getHardware(c.getSecondCompo()).getType() == HardwaresListS.USER_PC){
 											((UserPC)n.getHardware(c.getSecondCompo())).setGateway(p.getIp());
 										}
-									}
-								}
-								else {
-									if(!(c.setCompoIP2(p.getIp()))){
-										packSystem.Messages.showErrorMessage("Problème IP");
-										noError = false;
-									}
-									else {
-										if(n.getHardware(c.getFirstCompo()).getType() == HardwaresListS.USER_PC){
-											((UserPC)n.getHardware(c.getFirstCompo())).setGateway(p.getIp());
-										}
-									}
-								}
-								c.setType(p.getType());	
-								c.setCompoName(draggy.getID(),n.getInterfaceName(draggy.getID(), p.getType()));
-								index++;
-							}
-						}
-						else {
-							for( Connection c : n.getConnections(draggy.getConnection())){
-								if (c.getFirstCompo() == draggy.getID()){
-									if(!(c.setCompoIP1(ipEdit.getText()))){
-										packSystem.Messages.showErrorMessage("Problème IP");
-										noError = false;
-									}
-									else {
-										((UserPC)draggy).setIp(c.getCompoIP1());
-										((UserPC)draggy).setGateway(c.getCompoIP2());
-									}
-								}
-								else {
-									if(!(c.setCompoIP2(ipEdit.getText()))){
-										packSystem.Messages.showErrorMessage("Problème IP");
-										noError = false;
-									}
-									else {
-										((UserPC)draggy).setIp(c.getCompoIP2());
-										((UserPC)draggy).setGateway(c.getCompoIP1());;
-									}
-								}								
+									}	
 
-							}
+									c.setType(p.getType());	
+									c.setCompoName(draggy.getID(),n.getInterfaceName(draggy.getID(), p.getType()));
 
+								}
+							}
+							index++;
 						}
+
+
 
 						if(noError){
 							packSystem.Messages.showMessage("Sauvegarde réussie", "Confirmation");
-							frame.dispose();
 						}
+						frame.dispose();
+						RouterConfigurationGUI gui = new RouterConfigurationGUI(n, draggy);
+					}
+
+					private boolean checkConnectionChange(Connection co, Network n) {
+						Connection old = n.getAllConnections().get(co.getConnectionID());						
+						if (old.getCompoIP1() == co.getCompoIP1()){
+							if(old.getCompoIP2() == co.getCompoIP2()){
+								if (old.getType() == co.getType()){
+									if (old.getSubnetwork() == co.getSubnetwork()){
+										System.out.println("NO CHANGE");
+										return true;
+									}
+									else{System.out.println("Subnetwork : " +old.getSubnetwork().toString() + "/" + co.getSubnetwork().toString());}
+								}
+								else{System.out.println("Type :" + old.getType() +"/" + co.getType());}
+							}
+							else{System.out.println("IP2 :"+ old.getCompoIP2() + "/"+ co.getCompoIP2());}
+						}
+						else{System.out.println("IP1 :"+ old.getCompoIP1() + "/"+ co.getCompoIP1());}
+						return false;
 					}
 				});
-				Generate.addActionListener(new ActionListener() {
+				/*	Generate.addActionListener(new ActionListener() {
 
 					@Override
 					public void actionPerformed(ActionEvent e) {
-						String path = Messages.savingFile(JFileChooser.OPEN_DIALOG).getPath();
+						/*String path = Messages.savingFile(JFileChooser.OPEN_DIALOG).getPath();
 						String conf = n.printConfig(draggy.getID());
 						System.out.println("GENERATING");
 						try (PrintStream out = new PrintStream(new FileOutputStream(path))) {
 							out.print(conf);
+							packSystem.Messages.showMessage("Génération Terminée", "Confirmation");;
 						} catch (FileNotFoundException ex) {
 							ex.printStackTrace();
 						}
+						boolean confirm = packSystem.Messages.confirm("Etes vous sur de vouloir supprimer l'interface ? ");
 					}
-				});
-				if(isRouter){panel.add(Generate);}
+				});*/
+				panel.add(Generate);
 				frame.add(panel, gbc); 
 				frame.pack();
 				frame.setLocationRelativeTo(null);
@@ -231,11 +237,6 @@ public class ConfigurationGUI implements ActionListener {
 		});
 	}
 
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		@SuppressWarnings("unused")
-		Object source = e.getSource();
-	}
 	class InterfacePanel extends JPanel{
 
 		/**
@@ -247,14 +248,14 @@ public class ConfigurationGUI implements ActionListener {
 		private JComboBox<?> combo ;
 		private JTextField mask = new JTextField();
 		private JTextField name = new JTextField();
-		private JButton delete = new JButton("Delete");
-		private JButton addSub = new JButton("Add SubInterface");
-		public InterfacePanel(Connection c, int num, int ID) {
+		private JCheckBox deleted = new JCheckBox();
+		public  InterfacePanel(Connection c, int num, Router draggy, Network n) {
 			this.num = num;
-			JTextField t = new JTextField((this.num)+".");			
-			this.add(t);			
+			JTextField t = new JTextField((this.num)+".");	
+			t.setPreferredSize(new Dimension(15, 25));
+			this.add(t);
 			t.setEditable(false);			
-			if (c.getFirstCompo() == ID){
+			if (c.getFirstCompo() == draggy.getID()){
 				ip = getComboIp(c.getSubnetwork(),c.getCompoIP1());
 				name.setText(c.getCompoName(c.getFirstCompo()));
 				ip.setSelectedItem(c.getCompoIP1());
@@ -267,25 +268,14 @@ public class ConfigurationGUI implements ActionListener {
 			name.setPreferredSize(new Dimension(100, 25));
 			ip.setPreferredSize(new Dimension(100, 25));
 			mask.setPreferredSize(new Dimension(100, 25));
-			this.add(name);
+			this.add(name);			
 			this.add(ip);
 			this.add(mask);
 			mask.setText(c.getSubnetwork().getInfo().getNetmask());
 			combo = createComboColorPanel(c.getType());
 
 			this.add(combo);
-
-			this.add(delete);
-			delete.addActionListener(new ActionListener() {
-				
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					boolean confirm = packSystem.Messages.confirm("Etes vous sur de vouloir supprimer l'interface ? ");
-					if (confirm) {
-						
-					}					
-				}
-			});
+			this.add(deleted);
 		}
 
 		private JComboBox<?> getComboIp(SubnetUtils subnetwork, String ip) {
@@ -319,6 +309,13 @@ public class ConfigurationGUI implements ActionListener {
 		public String getName(){
 			return this.name.getText();
 		}
+		public boolean getDeleteBox(){
+			return this.deleted.isSelected();
+		}
+	}
+	@Override
+	public void actionPerformed(ActionEvent arg0) {
+		// TODO Auto-generated method stub
 
 	}
 }

@@ -1,4 +1,4 @@
-package packSystem;
+package controller;
 
 import java.awt.Color;
 import java.awt.Component;
@@ -13,8 +13,13 @@ import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
 
-import graphique.GUIController;
 import objects.Hardware;
+import objects.Router;
+import objects.Switch;
+import objects.UserPC;
+import packSystem.HardwaresListS;
+import packSystem.Messages;
+import packSystem.MouseTypes;
 
 public class MouseHandler extends MouseAdapter {
 
@@ -59,20 +64,19 @@ public class MouseHandler extends MouseAdapter {
 			xOffset = me.getX() - draggy.getX();
 			yOffset = me.getY() - draggy.getY();
 			if (SwingUtilities.isRightMouseButton(me)){   
-				if(draggy.getType() == HardwaresListS.ROUTER){
-					gui.showConfig(draggy);
+				switch(draggy.getType()){
+				case HardwaresListS.ROUTER: 	gui.showRouterConfig((Router)draggy);break;
+				case HardwaresListS.USER_PC:	gui.showPCConfig((UserPC)draggy);break;
+				case HardwaresListS.SWITCH:		gui.showSwitchConfig((Switch)draggy);break;
 				}
-				else {
-					gui.showPCConfig(draggy);
-				}
+
 				gui.repaint();
-				/*draggy.setText(""+draggy.getHostname());
-				draggy.setSize(draggy.getPreferredSize());*/
 			}
 			if ( SwingUtilities.isLeftMouseButton(me)){
 				switch(this.mouseType){
 				case MouseTypes.MOUSE_DELETE:	boolean confirm = packSystem.Messages.confirm("Etes vous sur de vouloir supprimer "+draggy.getHostname()+" ? ");
 				if (confirm) {
+					System.out.println("CLICK");
 					gui.deleteHard(draggy);
 				}				 break;
 				case MouseTypes.MOUSE_SERIAL: 	pointStart= draggy.getID();break;
@@ -86,6 +90,7 @@ public class MouseHandler extends MouseAdapter {
 			case MouseTypes.MOUSE_DEFAULT :	System.out.println("Default");break;
 			case MouseTypes.MOUSE_ROUTER: 	gui.plusNewRouter(me.getX(),me.getY());break;
 			case MouseTypes.MOUSE_USER: 	gui.plusNewUser(me.getX(),me.getY());break;					
+			case MouseTypes.MOUSE_SWITCH: 	gui.plusNewSwitch(me.getX(),me.getY());break;			
 			}
 			//draggy.setText(""+draggy.getHostname());
 		}                             			
@@ -116,6 +121,9 @@ public class MouseHandler extends MouseAdapter {
 		case MouseTypes.MOUSE_ROUTER: cursor = Toolkit.getDefaultToolkit().createCustomCursor(
 				new ImageIcon("src/router.png").getImage(),
 				new Point(0,0),"custom cursor");mouseType =MouseTypes.MOUSE_ROUTER; break;
+		case MouseTypes.MOUSE_SWITCH: cursor = Toolkit.getDefaultToolkit().createCustomCursor(
+				new ImageIcon("src/switch.png").getImage(),
+				new Point(0,0),"custom cursor");mouseType =MouseTypes.MOUSE_SWITCH; break;
 		case MouseTypes.MOUSE_USER: cursor =Toolkit.getDefaultToolkit().createCustomCursor(
 				new ImageIcon("src/pc.png").getImage(),
 				new Point(0,0),"custom cursor");mouseType =MouseTypes.MOUSE_USER; break;
