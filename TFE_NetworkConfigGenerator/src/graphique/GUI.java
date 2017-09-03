@@ -25,24 +25,25 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.RepaintManager;
 
+import ListsSystem.HardwaresListS;
+import ListsSystem.MouseTypes;
 import controller.GUIController;
 import controller.SubnetUtils;
 import objects.ControlButton;
 import objects.Hardware;
-import packSystem.HardwaresListS;
-import packSystem.MouseTypes;
 
 public class GUI implements ActionListener {
 	protected JMenuItem exit = new JMenuItem("Exit");
 	protected JCheckBoxMenuItem ipRouter = new JCheckBoxMenuItem("First ip");
 	protected JCheckBoxMenuItem showHostname = new JCheckBoxMenuItem("Show Hostname");
+	protected JCheckBoxMenuItem showNetworkOptionsPanel = new JCheckBoxMenuItem("Show Network Options");
 	protected JCheckBoxMenuItem showInterfaces = new JCheckBoxMenuItem("Show IP");
-	protected JMenu menuF = new JMenu("Fichier");
+	protected JMenu menuF = new JMenu("Files");
 	protected JMenu menuO = new JMenu("Options");
-	protected JMenuItem saveNetwork = new JMenuItem("Enregistrer");
-	protected JMenuItem loadNetwork = new JMenuItem("Ouvrir");
-	protected JMenuItem newNetwork = new JMenuItem("Nouveau");
-	protected JPanel controlPanel = new JPanel();
+	protected JMenuItem saveNetwork = new JMenuItem("Save");
+	protected JMenuItem loadNetwork = new JMenuItem("Open");
+	protected JMenuItem newNetwork = new JMenuItem("New");
+	protected JPanel controlPanel = new JPanel();	
 	protected JButton addRouter = new JButton();
 	protected JFrame frame = new JFrame();
 	public GUI() {
@@ -56,35 +57,36 @@ public class GUI implements ActionListener {
 
 					@Override
 					public void windowClosing(WindowEvent e) {
-						boolean confirm = packSystem.Messages.confirm("Etes-vous sur de vouloir quitter ? \nTout travail non sauvegardé sera perdu !");
+						boolean confirm = packSystem.Messages.confirm("Any unsaved changes will be lost."+"\n"+" Do you still want to quit ? ");
 						if (confirm) {
 							System.exit(0);
 						}
 					}
 				};
+				frame.setTitle("Configuration Network Generator");
 				frame.addWindowListener(exitListener);
 				frame.setLayout(new BorderLayout());
 				GUIController controller = new GUIController();
 				frame.add(controller,BorderLayout.CENTER);
-
 				frame.add(controlPanel,BorderLayout.SOUTH);
 				JMenuBar menuBar = new JMenuBar();
-				ControlButton routerButton = new ControlButton(Toolkit.getDefaultToolkit().getImage("src/router.png"),MouseTypes.MOUSE_ROUTER);
+				
+				ControlButton routerButton = new ControlButton("/resources/router.png",MouseTypes.MOUSE_ROUTER);
 				routerButton.setToolTipText("Router");
-				ControlButton switchButton = new ControlButton(Toolkit.getDefaultToolkit().getImage("src/switch.png"),MouseTypes.MOUSE_SWITCH);
+				ControlButton switchButton = new ControlButton("/resources/switch.png",MouseTypes.MOUSE_SWITCH);
 				switchButton.setToolTipText("Switch");
-				ControlButton userButton = new ControlButton(Toolkit.getDefaultToolkit().getImage("src/pc.png"),MouseTypes.MOUSE_USER);	
+				ControlButton userButton = new ControlButton("/resources/pc.png",MouseTypes.MOUSE_USER);	
 				userButton.setToolTipText("User PC");
-				ControlButton defaultMouse = new ControlButton(Toolkit.getDefaultToolkit().getImage("src/mouse.png"),MouseTypes.MOUSE_DEFAULT);	
+				ControlButton defaultMouse = new ControlButton("/resources/mouse.png",MouseTypes.MOUSE_DEFAULT);	
 				defaultMouse.setToolTipText("Grabbing Mouse");
-				ControlButton deleteMouse = new ControlButton(Toolkit.getDefaultToolkit().getImage("src/delete.png"),MouseTypes.MOUSE_DELETE);
+				ControlButton deleteMouse = new ControlButton("/resources/delete.png",MouseTypes.MOUSE_DELETE);
 				deleteMouse.setToolTipText("Suppression");
 
-				ControlButton serialIntButton = new ControlButton(Toolkit.getDefaultToolkit().getImage("src/serial.png"),MouseTypes.MOUSE_SERIAL);
+				ControlButton serialIntButton = new ControlButton("/resources/serial.png",MouseTypes.MOUSE_SERIAL);
 				serialIntButton.setToolTipText("Interface Serial");
-				ControlButton etherIntButton = new ControlButton(Toolkit.getDefaultToolkit().getImage("src/ethernet.png"),MouseTypes.MOUSE_ETHERNET);
+				ControlButton etherIntButton = new ControlButton("/resources/ethernet.png",MouseTypes.MOUSE_ETHERNET);
 				etherIntButton.setToolTipText("Interface Ethernet");
-				ControlButton gigaIntButton = new ControlButton(Toolkit.getDefaultToolkit().getImage("src/gigabits.png"),MouseTypes.MOUSE_GIGABITS);
+				ControlButton gigaIntButton = new ControlButton("/resources/gigabits.png",MouseTypes.MOUSE_GIGABITS);
 				gigaIntButton.setToolTipText("Interface Gigabits");
 
 				controlPanel.add(defaultMouse);
@@ -94,7 +96,7 @@ public class GUI implements ActionListener {
 				controlPanel.add(userButton);				
 				controlPanel.add(serialIntButton);		
 				controlPanel.add(etherIntButton);		
-				controlPanel.add(gigaIntButton);		
+				controlPanel.add(gigaIntButton);
 				menuBar.add(menuF);
 				menuBar.add(menuO);
 				menuF.setMnemonic(KeyEvent.VK_F);
@@ -103,10 +105,8 @@ public class GUI implements ActionListener {
 
 					@Override
 					public void actionPerformed(ActionEvent e) {
-						//TODO
 						Object source = e.getSource();
 						if (source == exit){
-							System.out.println("Exit Menu");
 							System.exit(0);
 						}
 
@@ -149,8 +149,8 @@ public class GUI implements ActionListener {
 
 					@Override
 					public void actionPerformed(ActionEvent arg0) {
-						boolean confirm = packSystem.Messages.confirm("Etes vous sur de vouloir reset l'interface ? ");
-						if (confirm) {							
+						boolean confirm = packSystem.Messages.confirm("Any unsaved changes will be lost, continue ? ");
+						if (confirm) {
 							controller.newNetwork();
 						}
 
@@ -161,12 +161,29 @@ public class GUI implements ActionListener {
 
 				menuO.add(ipRouter);
 				menuO.add(showHostname);
+				menuO.add(showNetworkOptionsPanel);			
 				menuO.add(showInterfaces);
+				ipRouter.addActionListener(new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						controller.setFirstIp(ipRouter.isSelected());
+
+					}
+				});
 				showHostname.addActionListener(new ActionListener() {
 
 					@Override
 					public void actionPerformed(ActionEvent e) {
 						controller.showHostname(showHostname.isSelected());
+
+					}
+				});
+				showNetworkOptionsPanel.addActionListener(new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						controller.showNetworkPanel(showNetworkOptionsPanel.isSelected());
 
 					}
 				});
@@ -181,6 +198,7 @@ public class GUI implements ActionListener {
 				ipRouter.setSelected(true);
 				showHostname.setSelected(true);
 				showInterfaces.setSelected(true);
+				showNetworkOptionsPanel.setSelected(false);
 				frame.setJMenuBar(menuBar);          
 				frame.setResizable(false);
 				frame.pack();
@@ -193,10 +211,8 @@ public class GUI implements ActionListener {
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		//TODO Not working
 		Object source = e.getSource();
 		if (source == exit){
-			System.out.println("Exit Menu");
 			System.exit(0);
 		}
 

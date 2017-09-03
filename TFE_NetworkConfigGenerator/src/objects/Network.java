@@ -7,21 +7,33 @@ import java.util.HashMap;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import ListsSystem.ConnectionsTypes;
+import ListsSystem.HardwaresListS;
 import controller.SubnetUtils;
-import packSystem.ConnectionsTypes;
-import packSystem.HardwaresListS;
 
 public class Network {
 
-	private SubnetUtils network; // UN SEUL VLAN
 	private boolean firstIPRouter = true;
 	private HashMap<Integer,Hardware> hardwaresList = new HashMap<Integer,Hardware>();
 	private HashMap<Integer,Connection> connectionsList  = new HashMap<Integer,Connection>();
-	private String[] freeIp ;
+	private HashMap<Integer,Vlan> vlanList  = new HashMap<Integer,Vlan>();
 
-	public Network(SubnetUtils newGlobal) {
-		this.network = newGlobal;
-		setFreeIp(newGlobal.getInfo().getAllAddresses());
+	public Network() {
+		try {
+			addVlan(new Vlan(SubnetUtils.getIp("192.168.0.0/25"), 0, "Global"));
+			addVlan(new Vlan(SubnetUtils.getIp("1.168.0.128/24"),1,""));
+			addVlan(new Vlan(SubnetUtils.getIp("3.168.0.160/27"),99,"Admin"));
+			addVlan(new Vlan(SubnetUtils.getIp("1.168.0.192/26"),2,"BOB"));
+		} catch (Exception e) {
+		}		
+		System.out.println("GLOBAL = " + vlanList.get(0).getSubnetwork().getInfo().getCidrSignature());
+	}
+
+	public Network(String subnet) {
+		try {
+			addVlan(new Vlan(SubnetUtils.getIp(subnet), 0, "Global"));
+		} catch (Exception e) {
+		}		
 	}
 
 	public void addHardware(Hardware r,Point location) {
@@ -32,13 +44,14 @@ public class Network {
 		Hardware deleting = this.getHardware(id);
 		ArrayList<Connection> tab = this.getConnectionsof(id);
 		for(int i = 0;i<tab.size();i++){
-			removeConnection(tab.get(i));
+			removeConnection(tab.get(i));			
+			this.vlanList.get(tab.get(i).getVlanID()).removeConnectionInVlan(tab.get(i).getConnectionID());
 		}
+
 		this.hardwaresList.remove(deleting.getID());
-		
+
 	}
 	/**
-	 * TODO
 	 * SEULEMENT 1 SEUL ! entre chaque
 	 * Interface utilisée ont besoin d'un "NO SHUTDOWN" pour fonctionner.
 	 * @param harwareID
@@ -46,23 +59,58 @@ public class Network {
 	 */
 	public String printConfig(int harwareID) {
 		ArrayList<Connection> allConnections = this.getConnectionsof(harwareID);
-		Router r = (Router)this.getHardware(harwareID);
-		String config = HardwaresListS.CONF1;
-		config+= "hostname " +r.getHostname()+ "\n";
-		config+= HardwaresListS.CONF2;
-		config+= "enable secret" + r.getSecret() + "\n";
-		config+= "enable password " + r.getPassword()+ "\n";
-		config+= HardwaresListS.CONF3;
-		for(Connection c : allConnections){
-			config += "interface " + c.getCompoName(harwareID) + "\n";
-			if(harwareID == c.getFirstCompo()){
-				config += "ip address " + c.getCompoIP1() +" "+ c.getSubnetwork().getInfo().getNetmask().toString() + "\n";			
+		String config = "";
+		switch(this.getHardware(harwareID).getType()){
+		case HardwaresListS.ROUTER : 
+			Router r = (Router) this.getHardware(harwareID);
+			config = HardwaresListS.CONFIGU1;
+			config+= "hostname " +r.getHostname()+ "\r\n!\r\n";
+			config+= "enable secret " + r.getSecret() + "\r\n";
+			config+= "enable password " + r.getPassword()+ "\r\n!\r\n";
+			for(Connection co : allConnections){
+				config += "interface " + co.getCompoName(harwareID) + "\r\n";
+				if(harwareID == co.getFirstCompo()){
+					config += "ip address " + co.getCompoIP1() +" "+ co.getSubnetwork().getInfo().getNetmask().toString() + "\r\n";			
+				}
+				else {
+					config += "ip address " + co.getCompoIP2() +" "+ co.getSubnetwork().getInfo().getNetmask().toString() + "\r\n";	
+				}
+				config+="no shutdown "+ "\r\n!\r\n";
+			}			
+			break;
+		case HardwaresListS.SWITCH : 
+			// IF second compo = ROUTER => switchport mode trunk
+			// IF Second compo = USER PC => switchport mode access 
+			//								switchport access vlan X
+			Switch s = (Switch) this.getHardware(harwareID);
+			for(Vlan i : s.getAllVlans().values()){
+				config+= "vlan "+ i.getNum() + "\r\n";	
+				config+= "name "+ i.getName() + "\r\n!\r\n";
 			}
-			else {
-				config += "ip address " + c.getCompoIP2() +" "+ c.getSubnetwork().getInfo().getNetmask().toString() + "\n";			
+			for(Connection co : allConnections){
+				config += "interface " + co.getCompoName(harwareID) + "\r\n";
+				if(harwareID == co.getFirstCompo()){
+					if(this.hardwaresList.get(co.getSecondCompo()).getType() == HardwaresListS.USER_PC){
+						config += "switchport mode access "+ "\r\n";
+						config += "switchport access vlan "+ co.getVlanID() + "\r\n";
+					}
+					else {
+						config += "switchport mode trunk" + "\r\n";
+					}
+				}
+				else {
+					if(this.hardwaresList.get(co.getSecondCompo()).getType() == HardwaresListS.USER_PC){
+						config += "switchport mode access "+ "\r\n";
+						config += "switchport access vlan "+ co.getVlanID() + "\r\n";
+					}
+					else {
+						config += "switchport mode trunk " + "\r\n";
+					}
+				}
 			}
+			break;
 		}
-		config+= HardwaresListS.CONF4;
+		config+="end";
 		return config;
 	}
 
@@ -71,13 +119,6 @@ public class Network {
 	}
 	public Hardware getHardware(int e){
 		return hardwaresList.get(e);
-	}
-	public String[] getFreeIp() {
-		return freeIp;
-	}
-
-	public void setFreeIp(String[] freeIp) {
-		this.freeIp = freeIp;
 	}
 
 	public ArrayList<Connection> getConnections(ArrayList<Integer> connection) {
@@ -92,9 +133,10 @@ public class Network {
 		return tabC;
 	}
 
-	public void addConnection(int h1ID, int h2ID, Connection co) {
+	public void addConnection(int vlanID,int h1ID, int h2ID, Connection co) {
 		this.connectionsList.put(co.getConnectionID(),co);
-		if((this.hardwaresList.get(h1ID).getType()) == HardwaresListS.USER_PC){	
+		this.vlanList.get(vlanID).addConnectionInVlan(co.getConnectionID());
+		if((this.hardwaresList.get(h1ID).getType()) == HardwaresListS.USER_PC){
 			setLinked(h2ID, co);
 			setLinked(h1ID, co);
 		}
@@ -104,24 +146,23 @@ public class Network {
 		}
 	}
 	public void removeConnection(Connection co){
-		System.out.println("REMOVE : " + co.getConnectionID() + ": " + co.getCompoIP1() +"/" + co.getCompoIP2());
 		this.connectionsList.remove(co.getConnectionID());
-		co.remove();
+		co.remove();		
 		if(this.hardwaresList.get(co.getSecondCompo()).getType() == HardwaresListS.USER_PC){		
-			System.out.println("RESET");
 			((UserPC)this.hardwaresList.get(co.getSecondCompo())).reset();
 		}
 		if(this.hardwaresList.get(co.getFirstCompo()).getType() == HardwaresListS.USER_PC){		
-			System.out.println("RESET");
 			((UserPC)this.hardwaresList.get(co.getFirstCompo())).reset();
 		}
 		deleteLink(co.getFirstCompo(),co.getConnectionID());
 		deleteLink(co.getSecondCompo(),co.getConnectionID());
+
 	}
 
 	private void setLinked(int compo,Connection co){
-		if(this.hardwaresList.get(compo).getType() == HardwaresListS.USER_PC){
+		if(this.hardwaresList.get(compo).getType() == HardwaresListS.USER_PC){			
 			((UserPC)this.hardwaresList.get(compo)).setLinked(true);
+			((UserPC)this.hardwaresList.get(compo)).setIp(co.getCompoIP2(), co.getVlanID());
 			((UserPC)this.hardwaresList.get(compo)).setGateway(co.getCompoIP1());
 		}
 		this.hardwaresList.get(compo).addConnection(co.getConnectionID());
@@ -135,7 +176,6 @@ public class Network {
 	public int getCoId() {
 		for(int i=0;i<this.connectionsList.size();i++){
 			if (this.connectionsList.get(i) == null){
-				System.out.println("I="+i);
 				return i;
 			}
 		}
@@ -151,94 +191,6 @@ public class Network {
 		return result;
 	}
 
-
-	public void load(JSONObject networkJSON){
-		String ip = (String) networkJSON.get("IP");
-		this.network = new SubnetUtils(ip);
-		this.hardwaresList = new HashMap<Integer,Hardware>();
-		this.connectionsList  = new HashMap<Integer,Connection>();
-		JSONArray hardwaresJSON = (JSONArray) networkJSON.get("hardwares");
-		for(int i =0;i<hardwaresJSON.size();i++){
-			JSONObject h = (JSONObject) hardwaresJSON.get(i);
-			Hardware r ;
-			if ((int)(long)h.get("type") == HardwaresListS.USER_PC){
-				r = new UserPC(network.getInfo().getLowAddress(), this.hardwaresList.size());
-				((UserPC)r).setGateway((String)h.get("gateway"));
-				((UserPC)r).setLinked((Boolean)h.get("linked"));
-				((UserPC)r).setIp((String)h.get("ip"));
-			}
-			else {
-				r = new Router(network.getInfo().getLowAddress(),this.hardwaresList.size());
-				((Router)r).setSecret((String)h.get("secret"));
-				((Router)r).setPassword((String)h.get("password"));				
-			}
-			r.setLocation((int) (long)h.get("positionX"),(int) (long) h.get("positionY"));
-			r.setID((int) (long) h.get("id"));
-			r.setHostname((String)h.get("hostname"));
-
-			this.addHardware(r, r.getLocation());
-		}
-
-		JSONArray connectionJSON = (JSONArray) networkJSON.get("connections");
-		for(int i =0;i<connectionJSON.size();i++){
-			JSONObject c = (JSONObject) connectionJSON.get(i);
-
-			Connection co = new Connection(this,(int)(long)c.get("type"), (int)(long)c.get("compoID1"),(int)(long) c.get("compoID2"),this.connectionsList.size());
-			co.setCompoName(co.getFirstCompo(), (String) c.get("nameID1"));
-			co.setCompoName(co.getSecondCompo(), (String) c.get("nameID2"));
-			co.setCompoIP((String)c.get("compoIP1"),(int)c.get("compoID1"));
-			co.setCompoIP((String)c.get("compoIP2"),(int)c.get("compoID2"));
-			co.setCompoName(co.getFirstCompo(),(String) c.get("compoName1"));
-			co.setCompoName(co.getSecondCompo(),(String) c.get("compoName2"));
-			this.addConnection((int)(long)c.get("compoID1"), (int)(long) c.get("compoID2"), co);	
-		}
-	}
-	@SuppressWarnings("unchecked")
-	public String save() {
-		JSONObject networkJSON = new JSONObject();		
-
-		networkJSON.put("IP", network.getInfo().getCidrSignature());
-		JSONArray hardwaresJSON = new JSONArray();
-		for(int key: this.hardwaresList.keySet()){
-			Hardware h = this.hardwaresList.get(key);
-			JSONObject hJSON = new JSONObject();
-			if (h.getType() == HardwaresListS.ROUTER){				
-				hJSON.put("secret",((Router) h).getSecret());
-				hJSON.put("password",((Router)h).getPassword());	
-
-			}
-			else {
-				hJSON.put("gateway", ((UserPC)h).getGateway());
-				hJSON.put("linked",((UserPC)h).isLinked());
-				hJSON.put("ip",((UserPC)h).getIP());
-			}
-			hJSON.put("id",h.getID());
-			hJSON.put("hostname",h.getHostname());
-			hJSON.put("positionX",h.getLocation().x);
-			hJSON.put("positionY",h.getLocation().y);
-			hJSON.put("type", h.getType());
-			hardwaresJSON.add(hJSON);
-		}
-		JSONArray connectionJSON = new JSONArray();
-		for(int key: this.connectionsList.keySet()){
-			Connection c = this.connectionsList.get(key);
-			JSONObject cJSON = new JSONObject();
-			cJSON.put("connectionID", c.getConnectionID());
-			cJSON.put("type",c.getType());
-			cJSON.put("IP",c.getSubnetwork().getInfo().getCidrSignature());
-			cJSON.put("compoID1", c.getFirstCompo()); 
-			cJSON.put("compoIP1", c.getCompoIP1());  
-			cJSON.put("compoID2", c.getSecondCompo()); 
-			cJSON.put("compoIP2", c.getCompoIP2());
-			cJSON.put("compoName1", c.getCompoName(c.getFirstCompo()));
-			cJSON.put("compoName2", c.getCompoName(c.getSecondCompo()));
-			connectionJSON.add(cJSON);
-		}
-
-		networkJSON.put("hardwares", hardwaresJSON);
-		networkJSON.put("connections", connectionJSON);
-		return networkJSON.toJSONString();
-	}
 	public String getInterfaceName(int compoID, int type){
 		int count = 0;
 		String name = "";
@@ -255,28 +207,197 @@ public class Network {
 		return name;
 	}
 
-	public SubnetUtils getSubnet() {
-		return this.network;
-	}
-
 	public int getFreeHardwareCount() {
 		if (hardwaresList.isEmpty() == false) {
 			for (int i = 0; i <= hardwaresList.size(); i++) {
 				if (hardwaresList.containsKey(i) == false) {
-					System.out.println("COUNT = " + i);
 					return i;
 				}
 			}
 		}
-		System.out.println("COUNT "+hardwaresList.size());
 		return hardwaresList.size();
 	}
+	public HashMap<Integer, Vlan> getVlans() {
+		return this.vlanList;
+	}
+	public void addVlan(Vlan vlan) throws Exception{
+		boolean error = false;
+		for (Vlan v : this.vlanList.values()){
+			if(SubnetUtils.checkOverlapping(vlan.getSubnetwork(),v.getSubnetwork())){
 
+				String message = ("Overlapping network : " + "\n" + v.getName() + "   :   " + v.getSubnetwork().getInfo().getCidrSignature()
+						+ "\n" + vlan.getName() + "   :   " + vlan.getSubnetwork().getInfo().getCidrSignature());
+				error = true;
+				throw new Exception(message);
+			}			
+		}
+		if (!error){
+			this.vlanList.put(vlan.getNum(), vlan);
+		}
+	}
+	public void removeVlan(int vlanID) {
+		Vlan v = this.vlanList.get(vlanID);
+		ArrayList<Integer> coList = v.getConnectionsList();
+		for(Integer x : coList){
+			removeConnection(this.connectionsList.get((Integer)x));			
+		}
+		this.vlanList.get(vlanID).removeConnectionList(coList);
+		this.vlanList.remove(vlanID, this.vlanList.get(vlanID));
+	}
+	public void changingVlan (int neededIP,ArrayList<Connection> connectionList,int newVlanID){
+		System.out.println("CHANGING VLAN FOR : " + neededIP);
+		System.out.println("NEW VLAN ID = " + newVlanID);
+		int availableIP = this.vlanList.get((Integer)newVlanID).getSubnetwork().getInfo().getAllFreeAddress().size();
+		if (neededIP > availableIP){
+			packSystem.Messages.showErrorMessage("Not enought IP in new VLAN" + "\n" +"IP needed : "+ neededIP + "\n" + "IP available :" + availableIP);
+		}
+		else {
+			Vlan newVlan = this.vlanList.get(newVlanID);			
+			for (Connection co : connectionList){
+				System.out.println("" + newVlan.getSubnetwork().getInfo().getCidrSignature() +"->" + co.getSubnetwork().getInfo().getCidrSignature());
+				Connection newCo = new Connection(newVlan, co.getType(), co.getFirstCompo(), co.getSecondCompo(), co.getConnectionID(), this.getInterfaceName(co.getFirstCompo(),co.getType()), this.getInterfaceName(co.getSecondCompo(),co.getType()),false);
+
+				this.removeConnection(co);
+
+				newCo.setCompoIP(newVlan.getSubnetwork().getInfo().getFirstFreeIP(),newCo.getFirstCompo());
+				newCo.setCompoIP(newVlan.getSubnetwork().getInfo().getFirstFreeIP(),newCo.getSecondCompo());
+				if (this.getHardware(newCo.getSecondCompo()).getType() == HardwaresListS.USER_PC){
+					((UserPC)this.getHardware(newCo.getSecondCompo())).setIp(newCo.getCompoIP2(),newVlan.getNum());
+				}
+				this.addConnection(newVlanID, newCo.getFirstCompo(), newCo.getSecondCompo(), newCo);
+			}
+		}
+	}
+	public Vlan getGlobal() {
+		return this.vlanList.get(0);
+	}
+
+	public SubnetUtils getSubnet(int vlanID) {
+		return this.vlanList.get(vlanID).getSubnetwork();
+	}
+	public boolean newSubnetwork(int oldNum, SubnetUtils newSubnet) {
+		for (Vlan v : this.vlanList.values()){
+			if (v.getNum() != oldNum){
+				if(SubnetUtils.checkOverlapping(newSubnet,v.getSubnetwork())){
+
+					packSystem.Messages.showErrorMessage("Overlapping network : " + "\n" + v.getName() + "   :   " + v.getSubnetwork().getInfo().getCidrSignature()
+							+ "\n" + this.vlanList.get(oldNum).getName() + "   :   " + this.vlanList.get(oldNum).getSubnetwork().getInfo().getCidrSignature());					
+				}
+				else {
+					this.vlanList.get(oldNum).setSubnetwork(newSubnet);
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 	public boolean isFirstIPRouter() {
 		return firstIPRouter;
 	}
 
 	public void setFirstIPRouter(boolean firstIPRouter) {
 		this.firstIPRouter = firstIPRouter;
+	}
+
+
+	/**
+	 * ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+	 * @throws Exception 
+	 * 
+	 */
+	public void load(JSONObject networkJSON) throws Exception{
+
+		this.vlanList = new HashMap<Integer,Vlan>();
+		this.hardwaresList = new HashMap<Integer,Hardware>();
+		this.connectionsList  = new HashMap<Integer,Connection>();
+
+		// GET VLANS
+		JSONArray vlanJSON = (JSONArray) networkJSON.get("vlans");
+		for(int i =0; i<vlanJSON.size();i++){
+			JSONObject vlan = (JSONObject) vlanJSON.get(i);
+			int num = (int) (long)vlan.get("num");
+			String name = (String) vlan.get("name");
+			SubnetUtils network = new SubnetUtils((String)vlan.get("subnetwork"));
+			Vlan v = new Vlan(network, num, name);
+			addVlan(v);
+		}
+		// GET HARDWARES
+		JSONArray hardwaresJSON = (JSONArray) networkJSON.get("hardwares");
+		for(int z =0; z<hardwaresJSON.size();z++){
+			JSONObject hardware = (JSONObject) hardwaresJSON.get(z);
+			switch((int) (long)hardware.get("type")){
+			case HardwaresListS.ROUTER : 				
+
+				Router router = new Router((int) (long) hardware.get("id"),(String) hardware.get("hostname"));
+
+				router.setSecret((String) hardware.get("secret"));
+				router.setPassword((String) hardware.get("password"));	
+				this.addHardware(router, new Point((int) (long) hardware.get("positionX"),(int) (long) hardware.get("positionY")));
+
+				break;
+			case HardwaresListS.USER_PC : 
+
+				UserPC user = new UserPC((int) (long) hardware.get("id"),(String) hardware.get("hostname"));
+
+				user.setGateway((String)hardware.get("gateway"));
+				user.setLinked((boolean) hardware.get("linked"));	
+				//user.setIp((String)hardware.get("ip"), (int)(long)hardware.get("vlanID"));
+				this.addHardware(user, new Point((int) (long) hardware.get("positionX"),(int) (long) hardware.get("positionY")));
+
+				break;
+			case HardwaresListS.SWITCH : 
+				Switch switc = new Switch((int) (long) hardware.get("id"),(String) hardware.get("hostname"));
+
+				this.addHardware(switc, new Point((int) (long) hardware.get("positionX"),(int) (long) hardware.get("positionY")));
+
+				break;
+			};			
+		}
+		// GET CONNECTIONS
+		JSONArray connectionJSON = (JSONArray) networkJSON.get("connections");
+		for(int e =0; e<connectionJSON.size();e++){
+			JSONObject connection = (JSONObject) connectionJSON.get(e);
+			int connectionID = (int) (long)connection.get("connectionID");
+			int type = (int) (long)connection.get("type");
+			int compoID1 = (int) (long)connection.get("compoID1");
+			int compoID2 = (int) (long)connection.get("compoID2");
+			String name1 = (String)connection.get("compoName1");
+			String name2 = (String)connection.get("compoName2");
+			int vlanID = (int) (long)connection.get("vlanID");
+
+			boolean isSub = (boolean)connection.get("isSub");
+			Connection co = new Connection(this.vlanList.get(vlanID), type, compoID1, compoID2, connectionID, name1, name2, isSub);
+			String compoIP1 = (String)connection.get("compoIP1");
+			String compoIP2 = (String)connection.get("compoIP2");
+			co.setCompoIP(compoIP1, compoID1);
+			co.setCompoIP(compoIP2, compoID2);
+			this.addConnection(vlanID, compoID1, compoID2, co);
+		}
+	}
+	@SuppressWarnings("unchecked")
+	public String save() {
+		JSONObject allSave = new JSONObject();		
+		//ALL NETWORK INFO
+		JSONArray networkJSON = new JSONArray();
+		for(int key: this.vlanList.keySet()){
+			Vlan v = this.vlanList.get(key);			
+			networkJSON.add(v.getJSONObject());
+		}
+		//ALL HARDWARE INFO
+		JSONArray hardwaresJSON = new JSONArray();
+		for(int key: this.hardwaresList.keySet()){
+			Hardware h = this.hardwaresList.get(key);			
+			hardwaresJSON.add(h.getJSONObject());
+		}
+		//ALL CONNECTION INFO
+		JSONArray connectionJSON = new JSONArray();
+		for(int key: this.connectionsList.keySet()){
+			Connection c = this.connectionsList.get(key);			
+			connectionJSON.add(c.getJSONObject());
+		}
+		allSave.put("vlans", networkJSON);
+		allSave.put("hardwares", hardwaresJSON);
+		allSave.put("connections", connectionJSON);
+		return allSave.toJSONString();
 	}
 }

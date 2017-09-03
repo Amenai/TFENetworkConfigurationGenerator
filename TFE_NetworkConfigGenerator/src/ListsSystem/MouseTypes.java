@@ -1,4 +1,4 @@
-package packSystem;
+package ListsSystem;
 
 public class MouseTypes {	
 	public static final int MOUSE_GIGABITS = 0;

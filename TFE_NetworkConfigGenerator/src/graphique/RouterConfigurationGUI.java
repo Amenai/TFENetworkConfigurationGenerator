@@ -1,13 +1,10 @@
 package graphique;
 
-import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
-import java.awt.TextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.FileNotFoundException;
@@ -15,6 +12,8 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map.Entry;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -25,20 +24,15 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSeparator;
 import javax.swing.JTextField;
-import javax.swing.RepaintManager;
-import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
-
+import ListsSystem.ConnectionsTypes;
+import ListsSystem.HardwaresListS;
 import controller.SubnetUtils;
 import objects.Connection;
-import objects.Hardware;
 import objects.Network;
 import objects.Router;
 import objects.UserPC;
-import packSystem.ConnectionsTypes;
-import packSystem.HardwaresListS;
+import objects.Vlan;
 import packSystem.HeadsTable;
-import packSystem.Messages;
 
 public class RouterConfigurationGUI implements ActionListener {
 	/**
@@ -58,18 +52,16 @@ public class RouterConfigurationGUI implements ActionListener {
 	private InterfacePanel p;
 	private HeadsTable headNum = new HeadsTable("Num",50);
 	private HeadsTable headName = new HeadsTable("Name",100);
-	private HeadsTable headIP = new HeadsTable("IP",100);
-	private HeadsTable headMasque = new HeadsTable("Masque",100);
+	private HeadsTable headIP = new HeadsTable("IP",125);
+	private HeadsTable headMasque = new HeadsTable("Vlan",100);
 	private HeadsTable headType = new HeadsTable("Type",100);
 	private HeadsTable headDelete = new HeadsTable("Delete",50);
 
-	public RouterConfigurationGUI(Network n,Router draggy) {
+	public RouterConfigurationGUI(Network n,Router hardRouter) {
 		EventQueue.invokeLater(new Runnable() {
 			@Override
-			public void run() {
-				// Turn off double buffering
-				RepaintManager.currentManager(null).setDoubleBufferingEnabled(false);
-				frame = new JFrame(draggy.getHostname());
+			public void run() {			
+				frame = new JFrame(hardRouter.getHostname());
 				frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 				frame.setLayout(new GridBagLayout());      
 				GridBagConstraints gbc = new GridBagConstraints();
@@ -83,7 +75,7 @@ public class RouterConfigurationGUI implements ActionListener {
 				host.add(hostnameEdit);
 				hostname.setPreferredSize(new Dimension(100, 25));
 				hostnameEdit.setPreferredSize(new Dimension(100, 25));
-				hostnameEdit.setText(draggy.getHostname());				
+				hostnameEdit.setText(hardRouter.getHostname());				
 				frame.add(host, gbc);
 				gbc.gridy++;
 				JPanel secretP = new JPanel();
@@ -91,7 +83,7 @@ public class RouterConfigurationGUI implements ActionListener {
 				secretP.add(secretEdit);
 				secret.setPreferredSize(new Dimension(100, 25));
 				secretEdit.setPreferredSize(new Dimension(100, 25));
-				String sec = (draggy).getSecret();
+				String sec = (hardRouter).getSecret();
 				if(!sec.isEmpty()){
 					sec = "******";
 				}
@@ -103,11 +95,10 @@ public class RouterConfigurationGUI implements ActionListener {
 				passwordP.add(passwordEdit);
 				password.setPreferredSize(new Dimension(100, 25));
 				passwordEdit.setPreferredSize(new Dimension(100, 25));
-				passwordEdit.setText((draggy).getPassword());				
+				passwordEdit.setText((hardRouter).getPassword());				
 				frame.add(passwordP, gbc);
 				gbc.gridy++;				
-				if(!(n.getConnections(draggy.getConnection()).isEmpty())){
-					//TODO
+				if(!(n.getConnections(hardRouter.getConnection()).isEmpty())){
 					JPanel heads = new JPanel();
 					heads.setLayout(new GridBagLayout());
 					GridBagConstraints gribC = new GridBagConstraints();
@@ -127,15 +118,22 @@ public class RouterConfigurationGUI implements ActionListener {
 					frame.add(heads, gbc);
 					gbc.gridy++;
 					int i = 1;	
-					for( Connection c : n.getConnections(draggy.getConnection())){    
-						p = new  InterfacePanel(c,i,draggy,n);
+					for( Connection c : n.getConnections(hardRouter.getConnection())){
+						p = new  InterfacePanel(c,i,hardRouter,n);
 						panels.add(p);
 						frame.add(p,gbc);
 						gbc.gridy++;
 						i++;
 					}
+					gbc.gridy++;
 				}
-				gbc.gridy++;
+				else {
+					JLabel l = new JLabel("No connection found");
+					l.setPreferredSize(new Dimension(140, 25));
+					frame.add(l,gbc);
+					gbc.gridy++;
+				}
+
 				frame.add(new JSeparator(), gbc);
 
 
@@ -148,84 +146,89 @@ public class RouterConfigurationGUI implements ActionListener {
 					public void actionPerformed(ActionEvent e) {
 						int index = 0;
 						boolean noError = true;
-						draggy.setHostname(hostnameEdit.getText());
+						hardRouter.setHostname(hostnameEdit.getText());
 
 						if (!(secretEdit.getText().equals("******"))){
-							(draggy).setSecret(secretEdit.getText());
+							(hardRouter).setSecret(secretEdit.getText());
 						}
-						(draggy).setPassword(passwordEdit.getText());
-						for( Connection c : n.getConnectionsof(draggy.getID())){
+						(hardRouter).setPassword(passwordEdit.getText());
+
+
+						for( Connection c : n.getConnectionsof(hardRouter.getID())){
 							InterfacePanel p =  panels.get(index);
 							if(p.getDeleteBox()){
-								if(packSystem.Messages.confirm("" + p.getIp() + " va être supprimée, êtes vous sûr ? ")){
+								if(packSystem.Messages.confirm("" + p.getIp() + " will be deleted ")){
 									n.removeConnection(c);
 								}
 							}
 							else{
-								//TODO if mask change : check IP in MASK
-								if(checkConnectionChange(c,n)){
-									if(!(c.setCompoIP(p.getIp(),draggy.getID()))){
-										packSystem.Messages.showErrorMessage("Problème IP");
-										noError = false;
-									}
-									else {
-										if(n.getHardware(c.getSecondCompo()).getType() == HardwaresListS.USER_PC){
-											((UserPC)n.getHardware(c.getSecondCompo())).setGateway(p.getIp());
+								if(checkConnectionChange(p,c)){
+									if(c.getVlanID() != p.getVlan()){
+										ArrayList<Connection> co= new ArrayList<>();
+										co.add(c);
+										n.changingVlan(2, co, p.getVlan());
+									}else {
+										if(!(c.setCompoIP(p.getIp(),hardRouter.getID()))){
+											packSystem.Messages.showErrorMessage("Problème IP");
+											noError = false;
 										}
-									}	
-
-									c.setType(p.getType());	
-									c.setCompoName(draggy.getID(),n.getInterfaceName(draggy.getID(), p.getType()));
-
+										else {
+											if(n.getHardware(c.getSecondCompo()).getType() == HardwaresListS.USER_PC){
+												((UserPC)n.getHardware(c.getSecondCompo())).setGateway(p.getIp());
+											}
+										}
+									}
+									c.setCompoName(hardRouter.getID(), p.getIntName());
+									c.setType(p.getType());									
+								}
+								else{
+									System.out.println("NO change");
 								}
 							}
 							index++;
 						}
-
-
+						//FIN CONNECTIONS
 
 						if(noError){
-							packSystem.Messages.showMessage("Sauvegarde réussie", "Confirmation");
+							packSystem.Messages.showMessage("Saved successfully", "Confirmation");
+							frame.dispose();
+							RouterConfigurationGUI gui = new RouterConfigurationGUI(n, hardRouter);
 						}
-						frame.dispose();
-						RouterConfigurationGUI gui = new RouterConfigurationGUI(n, draggy);
 					}
 
-					private boolean checkConnectionChange(Connection co, Network n) {
-						Connection old = n.getAllConnections().get(co.getConnectionID());						
-						if (old.getCompoIP1() == co.getCompoIP1()){
-							if(old.getCompoIP2() == co.getCompoIP2()){
-								if (old.getType() == co.getType()){
-									if (old.getSubnetwork() == co.getSubnetwork()){
-										System.out.println("NO CHANGE");
-										return true;
+					private boolean checkConnectionChange(InterfacePanel intP, Connection old) {	
+
+						if (old.getType() == intP.getType()){
+							if (old.getVlanID() == intP.getVlan()){
+								if(old.getFirstCompo() == hardRouter.getID()){
+									if(old.getCompoIP1() == intP.getIp()){
+										return false;
 									}
-									else{System.out.println("Subnetwork : " +old.getSubnetwork().toString() + "/" + co.getSubnetwork().toString());}
 								}
-								else{System.out.println("Type :" + old.getType() +"/" + co.getType());}
-							}
-							else{System.out.println("IP2 :"+ old.getCompoIP2() + "/"+ co.getCompoIP2());}
-						}
-						else{System.out.println("IP1 :"+ old.getCompoIP1() + "/"+ co.getCompoIP1());}
-						return false;
+								else {
+									if(old.getCompoIP2() == intP.getIp()){
+										return false;										
+									}
+								}
+							}							
+						}			
+						return true;
 					}
 				});
-				/*	Generate.addActionListener(new ActionListener() {
+				Generate.addActionListener(new ActionListener() {
 
 					@Override
 					public void actionPerformed(ActionEvent e) {
-						/*String path = Messages.savingFile(JFileChooser.OPEN_DIALOG).getPath();
-						String conf = n.printConfig(draggy.getID());
-						System.out.println("GENERATING");
+						String path = packSystem.Messages.savingFile(JFileChooser.OPEN_DIALOG).getPath();
+						String conf = n.printConfig(hardRouter.getID());
 						try (PrintStream out = new PrintStream(new FileOutputStream(path))) {
 							out.print(conf);
-							packSystem.Messages.showMessage("Génération Terminée", "Confirmation");;
+							packSystem.Messages.showMessage("Generating completed", "Confirmation");;
 						} catch (FileNotFoundException ex) {
 							ex.printStackTrace();
-						}
-						boolean confirm = packSystem.Messages.confirm("Etes vous sur de vouloir supprimer l'interface ? ");
+						}						
 					}
-				});*/
+				});
 				panel.add(Generate);
 				frame.add(panel, gbc); 
 				frame.pack();
@@ -245,36 +248,37 @@ public class RouterConfigurationGUI implements ActionListener {
 		private static final long serialVersionUID = 1L;
 		private JComboBox<?> ip ;
 		private int num ;
-		private JComboBox<?> combo ;
-		private JTextField mask = new JTextField();
-		private JTextField name = new JTextField();
+		private JComboBox<?> typeCombo ;
+		private JComboBox<?> vlan ;
+		private JTextField intName = new JTextField();
 		private JCheckBox deleted = new JCheckBox();
 		public  InterfacePanel(Connection c, int num, Router draggy, Network n) {
-			this.num = num;
-			JTextField t = new JTextField((this.num)+".");	
+			this.num = c.getConnectionID();
+			JTextField t = new JTextField((num)+".");	
 			t.setPreferredSize(new Dimension(15, 25));
 			this.add(t);
 			t.setEditable(false);			
 			if (c.getFirstCompo() == draggy.getID()){
 				ip = getComboIp(c.getSubnetwork(),c.getCompoIP1());
-				name.setText(c.getCompoName(c.getFirstCompo()));
+				intName.setText(c.getCompoName(c.getFirstCompo()));
 				ip.setSelectedItem(c.getCompoIP1());
 			}
 			else {
 				ip = getComboIp(c.getSubnetwork(),c.getCompoIP2());
-				name.setText(c.getCompoName(c.getSecondCompo()));
+				intName.setText(c.getCompoName(c.getSecondCompo()));
 				ip.setSelectedItem(c.getCompoIP2());
 			}		
-			name.setPreferredSize(new Dimension(100, 25));
-			ip.setPreferredSize(new Dimension(100, 25));
-			mask.setPreferredSize(new Dimension(100, 25));
-			this.add(name);			
+			intName.setPreferredSize(new Dimension(100, 25));
+			ip.setPreferredSize(new Dimension(125, 25));
+			this.add(intName);			
 			this.add(ip);
-			this.add(mask);
-			mask.setText(c.getSubnetwork().getInfo().getNetmask());
-			combo = createComboColorPanel(c.getType());
+			vlan = getComboVlan(n,n.getVlans().get(c.getVlanID()).getName());
+			vlan.setSelectedItem(n.getVlans().get(c.getVlanID()).getName());
+			this.add(vlan);
 
-			this.add(combo);
+			this.typeCombo = createComboColorPanel(c.getType());
+
+			this.add(typeCombo);
 			this.add(deleted);
 		}
 
@@ -285,6 +289,18 @@ public class RouterConfigurationGUI implements ActionListener {
 			String [] ips = freeIp.toArray(new String[0]);
 			JComboBox<?> cb = new JComboBox<Object>(ips);
 			return cb;
+		}
+		private JComboBox<?> getComboVlan(Network n, String vlan) {
+			HashMap<Integer, Vlan> vlan2 = n.getVlans();
+			JComboBox cb = new JComboBox();
+			for(Entry<Integer, Vlan> v : vlan2.entrySet()){
+				Item item = new Item(v.getKey(),v.getValue().getName());
+				cb.addItem(item);
+				if(v.getValue().getName() == vlan){
+					cb.setSelectedItem(item);
+				}
+			}
+			return  cb;
 		}
 		private JComboBox<?> createComboColorPanel(int type){
 
@@ -304,18 +320,46 @@ public class RouterConfigurationGUI implements ActionListener {
 			return (String)this.ip.getSelectedItem();
 		}
 		protected int getType(){
-			return this.combo.getSelectedIndex();
+			return this.typeCombo.getSelectedIndex();
 		}
-		public String getName(){
-			return this.name.getText();
+		public String getIntName(){
+			return this.intName.getText();
 		}
 		public boolean getDeleteBox(){
 			return this.deleted.isSelected();
 		}
+		public int getVlan(){
+			return ((Item)(this.vlan.getSelectedItem())).getId();
+		}
+	}
+	class Item
+	{
+		private int key;
+		private String vlanName;
+
+		public Item(int key, String name)
+		{
+			this.key = key;
+			this.vlanName = name;
+		}
+
+		public int getId()
+		{
+			return key;
+		}
+
+		public String getDescription()
+		{
+			return vlanName;
+		}
+
+		public String toString()
+		{
+			return vlanName;
+		}
 	}
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		// TODO Auto-generated method stub
 
 	}
 }

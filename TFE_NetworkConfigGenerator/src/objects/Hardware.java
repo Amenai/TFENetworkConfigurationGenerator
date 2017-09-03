@@ -1,13 +1,16 @@
 package objects;
 
 import java.awt.Image;
+import java.net.URL;
 import java.util.ArrayList;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 
+import org.json.simple.JSONObject;
+
+import ListsSystem.HardwaresListS;
 import controller.SubnetUtils;
-import packSystem.HardwaresListS;
 
 public abstract class Hardware extends JLabel {
 	/**
@@ -18,14 +21,15 @@ public abstract class Hardware extends JLabel {
 	int imageWidth = 60, imageHeight = 60;
 
 	private ArrayList<Integer> connection = new ArrayList<Integer>(); 
-	private ImageIcon icon ; //  TODO Default Image
+	private ImageIcon icon ;
 	private String Hostname = "Defaut";
 	private int ID;
 	private int hardwareType = HardwaresListS.DEFAUT;
-	public Hardware(String ip,Image image,int code,int type,String hostname) {
+	public Hardware(String imagePath,int code,int type,String hostname) {
+		URL url = ControlButton.class.getResource(imagePath);
+		this.icon = new ImageIcon((new ImageIcon(url)).getImage().getScaledInstance(imageWidth, imageHeight, Image.SCALE_DEFAULT));
 		this.setID(code);
 		this.setHostname(hostname);
-		this.icon = new ImageIcon(image.getScaledInstance(imageWidth, imageHeight, Image.SCALE_DEFAULT));
 		this.setIcon(this.icon);	
 		this.setType(type);
 	}
@@ -63,4 +67,11 @@ public abstract class Hardware extends JLabel {
 	public void setHostname(String hostname) {
 		Hostname = hostname;
 	}	
+	public JSONObject getJSONObject() {
+		JSONObject obj = new JSONObject();      	
+		return obj;
+	}
+	public Hardware fromJSONObject(JSONObject obj) {
+		return this;
+	}
 }

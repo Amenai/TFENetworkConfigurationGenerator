@@ -12,12 +12,12 @@ import org.json.simple.parser.JSONParser;
 import org.junit.Assert;
 import org.junit.Test;
 
+import ListsSystem.ConnectionsTypes;
 import controller.SubnetUtils;
 import objects.Connection;
 import objects.Network;
 import objects.Router;
 import objects.UserPC;
-import packSystem.ConnectionsTypes;
 
 public class JUnitTest {
 
@@ -25,7 +25,7 @@ public class JUnitTest {
 	@SuppressWarnings("static-access")
 	@Test
 	public void alltest() {
-		SubnetUtils adrs = new SubnetUtils("192.168.0.128","255.255.255.240");
+	/*	SubnetUtils adrs = new SubnetUtils("192.168.0.128","255.255.255.240");
 		Assert.assertEquals(adrs.getInfo().getCidrSignature(),"192.168.0.128/28");
 		adrs.getIp(adrs.getInfo().getCidrSignature());
 		this.network= new Network(adrs);
@@ -34,8 +34,8 @@ public class JUnitTest {
 		Assert.assertTrue(adrs.getInfo().isInRange("192.168.0.140"));
 		Assert.assertFalse(adrs.getInfo().isInRange("192.168.0.160"));
 		//Ajoute un router
-		
-		/*Router router = new Router(this.network.getSubnet(), this.network.getHardwaresCount());
+
+		Router router = new Router(this.network.getSubnet(), this.network.getHardwaresCount());
 		this.network.addHardware(router, new Point(300,300));		
 		buildRouter(router);
 		//Ajoute un router		
@@ -156,7 +156,7 @@ public class JUnitTest {
 	 * @param con
 	 */
 	private void buildConnection(Connection con) {
-/*		Assert.assertFalse(con.setCompoIP1("192.168.0.1"));
+	/*	Assert.assertFalse(con.setCompoIP1("192.168.0.1"));
 		Assert.assertFalse(con.setCompoIP1("192.168.10.1"));
 		Assert.assertFalse(con.setCompoIP1("192.168.1.252"));
 		Assert.assertTrue(con.setCompoIP1("192.168.0.130"));*/
@@ -170,7 +170,7 @@ public class JUnitTest {
 	 * Teste un router
 	 * @param router
 	 */
-	private void buildRouter(Router router) {		
+	private void buildRouter(Router router) {
 		Assert.assertEquals(router.getID(), 0);
 		Assert.assertEquals(router.getHostname(),"R"+(router.getID()+1));
 		Assert.assertEquals(router.getPassword(),"");

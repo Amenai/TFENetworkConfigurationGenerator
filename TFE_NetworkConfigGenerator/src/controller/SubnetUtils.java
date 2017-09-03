@@ -40,11 +40,16 @@ public class SubnetUtils {
 	 */
 	public static SubnetUtils getIp (String newGlobal){
 		SubnetUtils ip = new SubnetUtils(newGlobal);
-		System.out.println("IP count : " + ip.getInfo().getAddressCount());
-		System.out.println("Low address : " + ip.getInfo().getLowAddress());
-		System.out.println("High address : " + ip.getInfo().getHighAddress());
-		System.out.println("Broadcast : " + ip.getInfo().getBroadcastAddress());
-		return ip;
+		SubnetUtils ip2 = new SubnetUtils(ip.getInfo().getNetworkAddress(),ip.getInfo().getNetmask());
+		System.out.println("CIDR : " + newGlobal + "(" +ip2.getInfo().getNetmask()+")");
+		System.out.println("IP count : " + ip2.getInfo().getAddressCount());
+		System.out.println("Network address :" + ip2.getInfo().getNetworkAddress());
+		System.out.println("Low address : " + ip2.getInfo().getLowAddress());
+		System.out.println("High address : " + ip2.getInfo().getHighAddress());
+		System.out.println("Broadcast : " + ip2.getInfo().getBroadcastAddress());
+		System.out.println("-------------------------------------------------------");
+
+		return ip2;
 	}
 
 	private static final String IP_ADDRESS = "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})";
@@ -59,7 +64,6 @@ public class SubnetUtils {
 	private int broadcast = 0;
 	private Map<String, Boolean> freeIP = new TreeMap<String, Boolean>(new Comparator<String>() {
 		public int compare(String ip1, String ip2) {
-			// TODO 
 			String[] tIP1 = (ip1.split("\\."));
 			String[] tIP2 = (ip2.split("\\."));    	
 			for (int i = (tIP1.length-1);i>=0;i--){
@@ -77,11 +81,11 @@ public class SubnetUtils {
 	 * @param cidrNotation A CIDR-notation string, e.g. "192.168.0.1/16"
 	 */
 	public SubnetUtils(String cidrNotation) {
+
 		calculate(cidrNotation);
 		for(String s : this.getInfo().getAllAddresses()){
 			freeIP.put(s, true);
-		}
-
+		}		
 	}
 
 	/**
@@ -142,7 +146,7 @@ public class SubnetUtils {
 			return format(toArray(toInteger(IP)+1));
 		}
 
-		public String getFirstFreeIP() {
+		public String getFirstFreeIP() {			
 			for( String ip : this.getAllAddresses()){
 				if(freeIP.get(ip)){
 					return ip;
@@ -279,5 +283,69 @@ public class SubnetUtils {
 	 */
 	private String toCidrNotation(String addr, String mask) {
 		return addr + "/" + pop(toInteger(mask));
+	}
+	/**
+	 * CAS 1 : 
+	 * [192.168.0.0-192.168.0.15] [192.168.0.16-192.168.0.31]
+	 * CAS 2 : 
+	 * [192.168.0.16-192.168.0.31] [192.168.0.0-192.168.0.15]
+	 * CAS 3 : 
+	 * OVERLAPPING 
+	 * @param subnetwork
+	 * @param subnetwork2
+	 * @return
+	 */
+	public static boolean checkOverlapping(SubnetUtils subnetwork, SubnetUtils subnetwork2) {
+
+		int[] lowIp = divideToInt(subnetwork.getInfo().getNetworkAddress());
+		int[] lowIp2 = divideToInt(subnetwork2.getInfo().getNetworkAddress());
+		int[] highIp = divideToInt(subnetwork.getInfo().getBroadcastAddress());
+		int[] highIp2 = divideToInt(subnetwork2.getInfo().getBroadcastAddress());			
+
+		System.out.println("-------------------------------------OVERLAP TEST :-------------------------------------");
+		System.out.println(subnetwork.getInfo().getCidrSignature() + "= "+subnetwork.getInfo().getNetworkAddress()+"->"+subnetwork.getInfo().getBroadcastAddress());
+		System.out.println(subnetwork2.getInfo().getCidrSignature()+ "= "+subnetwork2.getInfo().getNetworkAddress()+"->"+subnetwork2.getInfo().getBroadcastAddress());
+		for (int x = 0;x < lowIp.length;x++){
+			if(compare(lowIp[x],highIp2[x]) == 1){
+				// OK : VLAN PLUS PETIT
+				return false;
+			}
+			if(compare(highIp[x],lowIp2[x]) == -1){
+				// OK : VLAN PLUS GRAND
+				return false;
+			}
+
+		}
+		return true;
+
+	}
+	private static int[] divideToInt(String address) {
+		String[] tab = address.split("\\.");
+		int[] finalTab = new int[tab.length];
+		for (int i = 0; i < 4; i++) {
+			finalTab[i] = Integer.parseInt(tab[i]);	
+		}
+		return finalTab;
+	}
+	/**
+	 * x = first subnet IP
+	 * y = second subnet IP
+	 * @param x
+	 * @param y
+	 * @return
+	 */
+	private static int compare(int x, int y) {
+		if(x > y){
+			//PLUS GRAND
+			return 1;
+		}
+		else if (x < y){
+			//PLUS PETIT
+			return -1;
+		}
+		else{
+			//IDENTIQUE : GO NEXT
+			return 0;
+		}
 	}
 }

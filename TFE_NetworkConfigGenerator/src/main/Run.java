@@ -1,11 +1,7 @@
 package main;
 
-import graphique.RouterConfigurationGUI;
-import controller.SubnetUtils;
 import graphique.GUI;
-import objects.Connection;
-import objects.Network;
-import objects.Router;
+import graphique.NetworkOptionsPanel;
 
 /**
  * Classe Main/Lancement du programme
@@ -19,6 +15,6 @@ public class Run{
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		new GUI();
+		new GUI();		
 	}
 }

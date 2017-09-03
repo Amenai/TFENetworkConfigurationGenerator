@@ -2,8 +2,10 @@ package objects;
 
 import java.awt.Toolkit;
 
+import org.json.simple.JSONObject;
+
+import ListsSystem.HardwaresListS;
 import controller.SubnetUtils;
-import packSystem.HardwaresListS;
 
 public class Router extends Hardware{
 
@@ -11,11 +13,11 @@ public class Router extends Hardware{
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private static String ImageFile = "src/router.png";
+	private static String ImageFile = "/resources/router.png";
 	private String password = "";
 	private String secret = "";
-	public Router(String addrs,int code) {		
-		super(addrs, Toolkit.getDefaultToolkit().getImage(ImageFile),code,HardwaresListS.ROUTER,"R"+(code+1));
+	public Router(int code,String hostname) {
+		super(ImageFile,code,HardwaresListS.ROUTER,hostname);
 	}
 
 	public void setSecret(String secret) {
@@ -47,5 +49,22 @@ public class Router extends Hardware{
 	public String getSecret(){
 		return this.secret;
 	}
-
+	@SuppressWarnings("unchecked")
+	@Override
+	public JSONObject getJSONObject() {
+		JSONObject obj = new JSONObject();   
+		obj.put("type", this.getType());
+		obj.put("secret",this.getSecret());
+		obj.put("password",this.getPassword());	
+		obj.put("id",this.getID());
+		obj.put("hostname",this.getHostname());
+		obj.put("positionX",this.getLocation().x);
+		obj.put("positionY",this.getLocation().y);
+		return obj;
+	}
+	@Override
+	public Hardware fromJSONObject(JSONObject obj) {
+		return this;
+	
+	}
 }

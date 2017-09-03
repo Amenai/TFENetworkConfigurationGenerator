@@ -4,22 +4,25 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.Image;
 import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.net.URL;
 
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
 
+import ListsSystem.HardwaresListS;
+import ListsSystem.MouseTypes;
+import objects.ControlButton;
 import objects.Hardware;
 import objects.Router;
 import objects.Switch;
 import objects.UserPC;
-import packSystem.HardwaresListS;
 import packSystem.Messages;
-import packSystem.MouseTypes;
 
 public class MouseHandler extends MouseAdapter {
 
@@ -38,7 +41,7 @@ public class MouseHandler extends MouseAdapter {
 	@Override
 	public void mouseReleased(MouseEvent me) {
 		if (draggy != null) {
-			draggy.setText(""+draggy.getHostname());
+			//draggy.setText(""+draggy.getHostname());
 			draggy.setSize(draggy.getPreferredSize());
 			draggy = null;
 		}
@@ -76,7 +79,6 @@ public class MouseHandler extends MouseAdapter {
 				switch(this.mouseType){
 				case MouseTypes.MOUSE_DELETE:	boolean confirm = packSystem.Messages.confirm("Etes vous sur de vouloir supprimer "+draggy.getHostname()+" ? ");
 				if (confirm) {
-					System.out.println("CLICK");
 					gui.deleteHard(draggy);
 				}				 break;
 				case MouseTypes.MOUSE_SERIAL: 	pointStart= draggy.getID();break;
@@ -87,12 +89,11 @@ public class MouseHandler extends MouseAdapter {
 		}
 		if ( SwingUtilities.isLeftMouseButton(me)){
 			switch(this.mouseType){
-			case MouseTypes.MOUSE_DEFAULT :	System.out.println("Default");break;
+			case MouseTypes.MOUSE_DEFAULT :	break;
 			case MouseTypes.MOUSE_ROUTER: 	gui.plusNewRouter(me.getX(),me.getY());break;
 			case MouseTypes.MOUSE_USER: 	gui.plusNewUser(me.getX(),me.getY());break;					
 			case MouseTypes.MOUSE_SWITCH: 	gui.plusNewSwitch(me.getX(),me.getY());break;			
 			}
-			//draggy.setText(""+draggy.getHostname());
 		}                             			
 		if ( SwingUtilities.isMiddleMouseButton(me)){
 
@@ -109,7 +110,7 @@ public class MouseHandler extends MouseAdapter {
 					}
 				}
 				this.gui.repaint();
-			}			
+			}
 		}
 		gui.repaint();
 	}
@@ -119,25 +120,25 @@ public class MouseHandler extends MouseAdapter {
 		case MouseTypes.MOUSE_DEFAULT :	mouseType =MouseTypes.MOUSE_DEFAULT;  break;
 
 		case MouseTypes.MOUSE_ROUTER: cursor = Toolkit.getDefaultToolkit().createCustomCursor(
-				new ImageIcon("src/router.png").getImage(),
+				new ImageIcon(MouseHandler.class.getResource("/resources/router.png")).getImage(),
 				new Point(0,0),"custom cursor");mouseType =MouseTypes.MOUSE_ROUTER; break;
 		case MouseTypes.MOUSE_SWITCH: cursor = Toolkit.getDefaultToolkit().createCustomCursor(
-				new ImageIcon("src/switch.png").getImage(),
+				new ImageIcon(MouseHandler.class.getResource("/resources/switch.png")).getImage(),
 				new Point(0,0),"custom cursor");mouseType =MouseTypes.MOUSE_SWITCH; break;
 		case MouseTypes.MOUSE_USER: cursor =Toolkit.getDefaultToolkit().createCustomCursor(
-				new ImageIcon("src/pc.png").getImage(),
+				new ImageIcon(MouseHandler.class.getResource("/resources/pc.png")).getImage(),
 				new Point(0,0),"custom cursor");mouseType =MouseTypes.MOUSE_USER; break;
 		case MouseTypes.MOUSE_DELETE: cursor =Toolkit.getDefaultToolkit().createCustomCursor(
-				new ImageIcon("src/delete.png").getImage(),
+				new ImageIcon(MouseHandler.class.getResource("/resources/delete.png")).getImage(),
 				new Point(0,0),"custom cursor"); mouseType =MouseTypes.MOUSE_DELETE;break;
 		case MouseTypes.MOUSE_SERIAL: cursor =Toolkit.getDefaultToolkit().createCustomCursor(
-				new ImageIcon("src/serial.png").getImage(),
+				new ImageIcon(MouseHandler.class.getResource("/resources/serial.png")).getImage(),
 				new Point(0,0),"custom cursor");mouseType =MouseTypes.MOUSE_SERIAL; break;
 		case MouseTypes.MOUSE_ETHERNET: cursor =Toolkit.getDefaultToolkit().createCustomCursor(
-				new ImageIcon("src/ethernet.png").getImage(),
+				new ImageIcon(MouseHandler.class.getResource("/resources/ethernet.png")).getImage(),
 				new Point(0,0),"custom cursor");mouseType =MouseTypes.MOUSE_ETHERNET; break;
 		case MouseTypes.MOUSE_GIGABITS: cursor =Toolkit.getDefaultToolkit().createCustomCursor(
-				new ImageIcon("src/gigabits.png").getImage(),
+				new ImageIcon(MouseHandler.class.getResource("/resources/gigabits.png")).getImage(),
 				new Point(0,0),"custom cursor");mouseType =MouseTypes.MOUSE_GIGABITS; break;
 		}
 		return cursor;
