@@ -51,6 +51,7 @@ import objects.Hardware;
 import objects.Network;
 import objects.Router;
 import objects.Switch;
+import objects.SwitchRouterConnection;
 import objects.UserPC;
 import objects.Vlan;
 
@@ -91,69 +92,109 @@ public class GUIController extends JLayeredPane {
 		if((this.network.getHardware(compoID1).getType() != HardwaresListS.USER_PC) || (this.network.getHardware(compoID2).getType() != HardwaresListS.USER_PC)){
 			if(!isPcAndLinked(compoID1) && !isPcAndLinked(compoID2) ){
 				int selected= this.optionsPanel.getSelectedVlan();
-
 				Vlan using = this.network.getVlans().get((Integer)selected);
-				if(using.getSubnetwork().getInfo().getFirstFreeIP() != "0.0.0.0"){
-					/* TODO IPFIRST 
-					 String IPFirst = using.getSubnetwork().getInfo().getFirstFreeIP();
-					String IPSecond = using.getSubnetwork().getInfo().getFirstFreeIP();
-					if(!firstIP){						
-						packSystem.Messages.showErrorMessage("WTF");
-						new askComboIP(using.getSubnetwork(),IPFirst,IPSecond);
+				Connection co2 = null;
+				switch(this.network.getHardware(compoID1).getType()){
+				case  HardwaresListS.ROUTER : 
+					switch(this.network.getHardware(compoID2).getType()){
+					case  HardwaresListS.ROUTER : co2 = linkRouterToRouter(using,type,compoID1,compoID2);break;
+					case  HardwaresListS.SWITCH : co2 = linkRouterToSwitch(using,type,compoID1,compoID2);break;
+					case  HardwaresListS.USER_PC : co2 = linkRouterToPC(using,type,compoID1,compoID2);break;
 					}
-					else {
-						packSystem.Messages.showErrorMessage("ERROR");
-					}*/
-					Connection co2 = null;
-					switch(this.network.getHardware(compoID1).getType()) {
-					case  HardwaresListS.ROUTER :
-						co2 = new Connection(using,type, compoID1, compoID2,this.network.getCoId(),this.network.getInterfaceName(compoID1,type),this.network.getInterfaceName(compoID2,type),false);
-						co2.setCompoIP(using.getSubnetwork().getInfo().getFirstFreeIP(),compoID1);
-						co2.setCompoIP(using.getSubnetwork().getInfo().getFirstFreeIP(),compoID2);
-						if (this.network.getHardware(compoID2).getType() == HardwaresListS.USER_PC){
-							((UserPC)this.network.getHardware(compoID2)).setIp(co2.getCompoIP2(),using.getNum());
-						}
-						if (this.network.getHardware(compoID2).getType() == HardwaresListS.SWITCH){
-							co2.setSubInterface(true);
-						}
-						break;
-					case HardwaresListS.SWITCH :
-						// TODO Switch IP
-						co2 = new Connection(using,type, compoID1, compoID2,this.network.getCoId(),this.network.getInterfaceName(compoID1,type),this.network.getInterfaceName(compoID2,type),false);
-						co2.setCompoIP(using.getSubnetwork().getInfo().getFirstFreeIP(),compoID1);
-						co2.setCompoIP(using.getSubnetwork().getInfo().getFirstFreeIP(),compoID2);
-						if (this.network.getHardware(compoID2).getType() == HardwaresListS.USER_PC){
-							((UserPC)this.network.getHardware(compoID2)).setIp(co2.getCompoIP2(),using.getNum());
-						}
-						if (this.network.getHardware(compoID2).getType() == HardwaresListS.ROUTER){
-							co2.setSubInterface(true);
-						}
-						break;
-					case HardwaresListS.USER_PC :
-						co2 = new Connection(using,type, compoID2, compoID1,this.network.getCoId(),this.network.getInterfaceName(compoID2,type),this.network.getInterfaceName(compoID1,type),false);
-						co2.setCompoIP(using.getSubnetwork().getInfo().getFirstFreeIP(),compoID2);
-						co2.setCompoIP(using.getSubnetwork().getInfo().getFirstFreeIP(),compoID1);
-						((UserPC)this.network.getHardware(compoID1)).setIp(co2.getCompoIP2(),using.getNum());
-						break;
+					break;
+				case  HardwaresListS.SWITCH : 
+					switch(this.network.getHardware(compoID2).getType()){
+					case  HardwaresListS.ROUTER : co2 = linkRouterToSwitch(using,type,compoID2,compoID1);break;
+					case  HardwaresListS.SWITCH : co2 = linkSwitchToSwitch(using,type,compoID1,compoID2);break;
+					case  HardwaresListS.USER_PC : co2 = linkSwitchToPC(using,type,compoID1,compoID2);break;
 					}
-					this.network.addConnection(using.getNum(),compoID1, compoID2, co2);
+					break;
+				case  HardwaresListS.USER_PC : 
+					switch(this.network.getHardware(compoID2).getType()){
+					case  HardwaresListS.ROUTER : co2 = linkRouterToPC(using,type,compoID2,compoID1);break;
+					case  HardwaresListS.SWITCH : co2 = linkSwitchToPC(using,type,compoID2,compoID1);break;
+					}
+					break;
 				}
+				this.network.addConnection(using.getNum(),compoID1, compoID2, co2);
 			}
 		}
 	}
-	private String[] askComboIP(SubnetUtils subnetUtils) {
-		JFrame f = new JFrame("New IPS");
-		JPanel p = new JPanel();
-		p.setLayout(new GridLayout());
-		GridBagConstraints gbc = new GridBagConstraints();
-		gbc.gridheight =1;
-		gbc.gridwidth =1;
-		gbc.gridx = 0;
-		gbc.gridheight = 0;
-
-		return null;
+	private Connection linkRouterToPC(Vlan using, int type, int routerID, int PCID) {
+		Connection co2 = new Connection(using,type, routerID, PCID,this.network.getCoId(),this.network.getInterfaceName(routerID,type),this.network.getInterfaceName(PCID,type),false);
+		co2.setCompoIP(using.getSubnetwork().getInfo().getFirstFreeIP(),routerID,false);
+		co2.setCompoIP(using.getSubnetwork().getInfo().getFirstFreeIP(),PCID,false);
+		((UserPC)this.network.getHardware(PCID)).setIp(co2.getCompoIP2(),using.getNum());
+		return co2;
+	}
+	private Connection linkRouterToRouter(Vlan using, int type, int routerID1, int routerID2){
+		Connection co2 = new Connection(using,type, routerID1, routerID2,this.network.getCoId(),this.network.getInterfaceName(routerID1,type),this.network.getInterfaceName(routerID2,type),false);
+		co2.setCompoIP(using.getSubnetwork().getInfo().getFirstFreeIP(),routerID1,false);
+		co2.setCompoIP(using.getSubnetwork().getInfo().getFirstFreeIP(),routerID2,false);
+		return co2;
 	}
 
+	private Connection linkSwitchToSwitch(Vlan using, int type, int switchID1, int switchID2){
+		Connection co2= new Connection(using, type, switchID1, switchID2, this.network.getCoId(), this.network.getInterfaceName(switchID1,type), this.network.getInterfaceName(switchID2,type), false);
+		return co2;
+	}
+	private SwitchRouterConnection linkRouterToSwitch(Vlan using, int type, int routerID, int switchID){
+		SwitchRouterConnection co2 = new SwitchRouterConnection(using,type, routerID, switchID,this.network.getCoId(),this.network.getInterfaceName(routerID,type),this.network.getInterfaceName(switchID,type),false);
+		Connection setIP = network.getConnectionFromVlan(co2.getVlanID(), switchID, HardwaresListS.USER_PC);
+
+		if(setIP != null){
+			//CAS 3
+			co2.setCompoIP(setIP.getCompoIP1(),routerID,true);
+			co2.setCompoIP(setIP.getCompoIP2(),switchID,true);
+		}
+		else {
+			//CAS 1 
+			//Pas encore PC connecté à ce VLAN
+			co2.setCompoIP(using.getSubnetwork().getInfo().getFirstFreeIP(),routerID,false);
+			co2.setCompoIP(using.getSubnetwork().getInfo().getFirstFreeIP(),switchID,false);	
+		}
+		for(Connection coco : this.network.getConnectionsof(switchID)){
+			System.out.println("PC DEJAS CONNECTE");
+			co2.addSubInterface(coco.getConnectionID());
+		}
+		//Switch s = ((Switch)this.network.getAllHardwares().get(switchID));
+		Switch s = ((Switch)(this.network.getHardware((Integer)switchID)));
+		for(Hardware h : this.network.getAllHardwares().values()){
+			System.out.println("" + h.getHostname() + "/" + h.getID());
+		}
+		s.addSRCOtoSwitch((SwitchRouterConnection)co2);	
+		//	Switch s = ((Switch)(this.network.getHardware((Integer)switchID)));
+		System.out.println("ID = " + s.getName());
+		System.out.println("" + s.getAllSRCo().toString());
+		return co2;
+	}
+	private Connection linkSwitchToPC(Vlan using, int type, int switchID, int PCID){
+		//CHECK IF ROUTER CONNECTED IN SAME VLAN
+		Connection co2 = new Connection(using,type, switchID, PCID,this.network.getCoId(),this.network.getInterfaceName(switchID,type),this.network.getInterfaceName(PCID,type),false);
+		Switch s = ((Switch)(this.network.getHardware(switchID)));
+		System.out.println("USING " + using.getNum());
+		int id = ((Switch)(this.network.getHardware((Integer)switchID))).getSRConnection(using.getNum());
+		System.out.println("ID = " + id);
+		if(id != -1){
+			//CAS 4
+			SwitchRouterConnection setIP = (SwitchRouterConnection) this.network.getConnection(id);
+			co2.setCompoIP(setIP.getCompoIP1(),switchID,true);
+			co2.setCompoIP(setIP.getCompoIP2(),PCID,true);
+			((UserPC)this.network.getHardware(PCID)).setIp(setIP.getCompoIP2(),using.getNum());			
+		}
+		else {
+			//CAS 2
+			//Pas encore router connecté à ce VLAN
+			co2.setCompoIP(using.getSubnetwork().getInfo().getFirstFreeIP(),switchID,false);
+			co2.setCompoIP(using.getSubnetwork().getInfo().getFirstFreeIP(),PCID,false);
+			((UserPC)this.network.getHardware(PCID)).setIp(co2.getCompoIP2(),using.getNum());
+		}
+		for(int srCoZ : ((Switch)this.network.getHardware(switchID)).getAllSRCo().values()){
+			System.out.println("ROUTERS DEJAS CONNECTE");
+			((SwitchRouterConnection)this.network.getConnection(srCoZ)).addSubInterface(co2.getConnectionID());
+		}
+		return co2;
+	}
 	private boolean isPcAndLinked(int compoID){
 		if (this.network.getHardware(compoID).getType() == HardwaresListS.USER_PC ){			
 			return ((UserPC)this.network.getHardware(compoID)).isLinked();
@@ -179,6 +220,7 @@ public class GUIController extends JLayeredPane {
 
 				for(int key: this.network.getAllConnections().keySet()){
 					Connection e = this.network.getAllConnections().get(key);
+					//TODO SUBINTERFACE SWITCH PAINT
 					if(!e.isSubInterface()){
 						g2D.setColor(ConnectionsTypes.getColor(e.getType()));
 						g2D.setStroke(new BasicStroke(3));
@@ -324,7 +366,6 @@ public class GUIController extends JLayeredPane {
 	}
 	public void setFirstIp(boolean selected) {
 		this.firstIP = selected;
-
 	}
 
 	public void deleteHard(Hardware hardware) {
@@ -336,7 +377,7 @@ public class GUIController extends JLayeredPane {
 		String lines = this.network.save();
 		try (FileWriter file = new FileWriter(path.getPath())) {
 			file.write(lines);	
-			packSystem.Messages.showMessage("Sauvegarde Réussie", "Confirmation");
+			packSystem.Messages.showMessage("Saved completed", "Confirmation");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

@@ -122,7 +122,7 @@ public class PCConfigurationGUI implements ActionListener {
 						boolean noError = true;
 						hardPC.setHostname(hostnameEdit.getText());
 						for( Connection c : n.getConnections(hardPC.getConnection())){
-							if(!(c.setCompoIP((String)ipEdit.getSelectedItem(),hardPC.getID()))){
+							if(!(c.setCompoIP((String)ipEdit.getSelectedItem(),hardPC.getID(),false))){
 								packSystem.Messages.showErrorMessage("Problème IP");
 								noError = false;
 							}

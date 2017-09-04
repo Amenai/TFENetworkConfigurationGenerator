@@ -30,6 +30,8 @@ import controller.SubnetUtils;
 import objects.Connection;
 import objects.Network;
 import objects.Router;
+import objects.Switch;
+import objects.SwitchRouterConnection;
 import objects.UserPC;
 import objects.Vlan;
 import packSystem.HeadsTable;
@@ -118,7 +120,9 @@ public class RouterConfigurationGUI implements ActionListener {
 					frame.add(heads, gbc);
 					gbc.gridy++;
 					int i = 1;	
-					for( Connection c : n.getConnections(hardRouter.getConnection())){
+					gbc.gridx=0;
+					for( Connection c : n.getConnections(hardRouter.getConnection())){		
+						System.out.println("ICI ICI ICI ICI ");
 						p = new  InterfacePanel(c,i,hardRouter,n);
 						panels.add(p);
 						frame.add(p,gbc);
@@ -162,13 +166,14 @@ public class RouterConfigurationGUI implements ActionListener {
 								}
 							}
 							else{
+								
 								if(checkConnectionChange(p,c)){
 									if(c.getVlanID() != p.getVlan()){
 										ArrayList<Connection> co= new ArrayList<>();
 										co.add(c);
 										n.changingVlan(2, co, p.getVlan());
 									}else {
-										if(!(c.setCompoIP(p.getIp(),hardRouter.getID()))){
+										if(!(c.setCompoIP(p.getIp(),hardRouter.getID(),false))){
 											packSystem.Messages.showErrorMessage("Problème IP");
 											noError = false;
 										}
@@ -233,7 +238,7 @@ public class RouterConfigurationGUI implements ActionListener {
 				frame.add(panel, gbc); 
 				frame.pack();
 				frame.setLocationRelativeTo(null);
-				frame.setResizable(false);
+				frame.setResizable(true);
 				frame.setVisible(true);
 			}
 
@@ -252,34 +257,94 @@ public class RouterConfigurationGUI implements ActionListener {
 		private JComboBox<?> vlan ;
 		private JTextField intName = new JTextField();
 		private JCheckBox deleted = new JCheckBox();
-		public  InterfacePanel(Connection c, int num, Router draggy, Network n) {
+		private ArrayList<SubInterfacePanel> subinterfacePanel = new ArrayList<>();
+		private JPanel subInter = new JPanel();
+		private boolean isSub = false;
+		public  InterfacePanel(Connection c, int num, Router hardRouter, Network n) {
+			this.setLayout(new GridBagLayout());
+			GridBagConstraints grb = new GridBagConstraints();
+			grb.gridx = 0;
+			grb.gridy = 0;
 			this.num = c.getConnectionID();
-			JTextField t = new JTextField((num)+".");	
-			t.setPreferredSize(new Dimension(15, 25));
-			this.add(t);
-			t.setEditable(false);			
-			if (c.getFirstCompo() == draggy.getID()){
-				ip = getComboIp(c.getSubnetwork(),c.getCompoIP1());
+			JTextField t = new JTextField((this.num)+".");
+			t.setPreferredSize(new Dimension(15, 25));			
+			t.setEditable(false);
+			this.add(t,grb);
+			grb.gridx++;
+			if (c.getFirstCompo() == hardRouter.getID()){
+
 				intName.setText(c.getCompoName(c.getFirstCompo()));
-				ip.setSelectedItem(c.getCompoIP1());
+				intName.setPreferredSize(new Dimension(100, 25));
+				this.add(intName,grb);
+				grb.gridx++;
+
+				if(n.getHardware((Integer)c.getSecondCompo()).getType() == HardwaresListS.SWITCH){
+					isSub = true;
+					this.subInter.setLayout(new GridBagLayout());
+					GridBagConstraints gribC = new GridBagConstraints();
+					gribC.gridx = 0;
+					gribC.gridy = 0;
+					SwitchRouterConnection subs = ((SwitchRouterConnection) n.getConnection(c.getConnectionID()));
+					for(int srSubCo : subs.getSubinterface()){
+						SubInterfacePanel subInt = new SubInterfacePanel(((Connection)n.getConnection(srSubCo)), hardRouter, n);
+						subinterfacePanel.add(subInt);
+						subInter.add(subInt,gribC);
+						gribC.gridy++;
+					}
+				}
+				else{
+					// NORMAL CONNECTION
+					ip = getComboIp(c.getSubnetwork(),c.getCompoIP1());					
+					ip.setSelectedItem(c.getCompoIP1());	
+					ip.setPreferredSize(new Dimension(125, 25));
+					this.add(ip,grb);
+					grb.gridx++;
+					vlan = getComboVlan(n,n.getVlans().get(c.getVlanID()).getName());
+					vlan.setSelectedItem(n.getVlans().get(c.getVlanID()).getName());
+					this.add(vlan,grb);
+					grb.gridx++;
+				}
 			}
 			else {
-				ip = getComboIp(c.getSubnetwork(),c.getCompoIP2());
 				intName.setText(c.getCompoName(c.getSecondCompo()));
-				ip.setSelectedItem(c.getCompoIP2());
+				intName.setPreferredSize(new Dimension(100, 25));
+				this.add(intName,grb);
+				grb.gridx++;
+				if(n.getHardware(c.getSecondCompo()).getType() == HardwaresListS.SWITCH){
+					isSub = false;
+					this.subInter.setLayout(new GridBagLayout());
+					GridBagConstraints gribC = new GridBagConstraints();
+					gribC.gridx = 0;
+					gribC.gridy = 0;
+
+					for(int srSubCo : ((SwitchRouterConnection) c).getSubinterface()){
+						SubInterfacePanel subInt = new SubInterfacePanel(((Connection)n.getConnection(srSubCo)), hardRouter, n);
+						subinterfacePanel.add(subInt);
+						subInter.add(subInt,gribC);
+						gribC.gridy++;
+					}
+				}
+				else {
+					ip = getComboIp(c.getSubnetwork(),c.getCompoIP2());					
+					ip.setSelectedItem(c.getCompoIP2());
+					ip.setPreferredSize(new Dimension(125, 25));
+					this.add(ip,grb);
+					grb.gridx++;
+					vlan = getComboVlan(n,n.getVlans().get(c.getVlanID()).getName());
+					vlan.setSelectedItem(n.getVlans().get(c.getVlanID()).getName());
+					this.add(vlan,grb);
+					grb.gridx++;
+				}
+
 			}		
-			intName.setPreferredSize(new Dimension(100, 25));
-			ip.setPreferredSize(new Dimension(125, 25));
-			this.add(intName);			
-			this.add(ip);
-			vlan = getComboVlan(n,n.getVlans().get(c.getVlanID()).getName());
-			vlan.setSelectedItem(n.getVlans().get(c.getVlanID()).getName());
-			this.add(vlan);
 
 			this.typeCombo = createComboColorPanel(c.getType());
-
-			this.add(typeCombo);
-			this.add(deleted);
+			this.add(typeCombo,grb);
+			grb.gridx++;
+			this.add(deleted,grb);
+			grb.gridy++;
+			grb.gridx=0;
+			this.add(this.subInter,grb);
 		}
 
 		private JComboBox<?> getComboIp(SubnetUtils subnetwork, String ip) {
@@ -312,7 +377,7 @@ public class RouterConfigurationGUI implements ActionListener {
 			}
 			return cb;
 		}	
-		public int getNum() {		
+		public int getNum() {
 			return this.num;
 		}
 
@@ -328,6 +393,73 @@ public class RouterConfigurationGUI implements ActionListener {
 		public boolean getDeleteBox(){
 			return this.deleted.isSelected();
 		}
+		public int getVlan(){
+			return ((Item)(this.vlan.getSelectedItem())).getId();
+		}
+	}
+	class SubInterfacePanel extends JPanel{
+		private static final long serialVersionUID = 1L;
+		private JComboBox<?> ip ;
+		private JComboBox<?> vlan ;
+		private JTextField intName = new JTextField();		
+		public SubInterfacePanel(Connection c, Router hardRouter, Network n) {
+			if (c.getFirstCompo() == hardRouter.getID()){
+				ip = getComboIp(c.getSubnetwork(),c.getCompoIP2());
+				intName.setText(c.getCompoName(c.getFirstCompo()) + "."+c.getVlanID());
+				ip.setSelectedItem(c.getCompoIP2());								
+			}
+			else {
+				ip = getComboIp(c.getSubnetwork(),c.getCompoIP1());
+				intName.setText(c.getCompoName(c.getSecondCompo()) + "."+c.getVlanID());
+				ip.setSelectedItem(c.getCompoIP1());
+			}		
+			intName.setPreferredSize(new Dimension(100, 25));
+			ip.setPreferredSize(new Dimension(125, 25));
+			this.add(intName);			
+			this.add(ip);
+			vlan = getComboVlan(n,n.getVlans().get(c.getVlanID()).getName());
+			vlan.setSelectedItem(n.getVlans().get(c.getVlanID()).getName());
+			this.add(vlan);
+		}
+		private JComboBox<?> getComboIp(SubnetUtils subnetwork, String ip) {
+			ArrayList<String> freeIp = subnetwork.getInfo().getAllFreeAddress();
+			freeIp.add(ip);
+			Collections.sort(freeIp);
+			String [] ips = freeIp.toArray(new String[0]);
+			JComboBox<?> cb = new JComboBox<Object>(ips);
+			return cb;
+		}
+		private JComboBox<?> getComboVlan(Network n, String vlan) {
+			HashMap<Integer, Vlan> vlan2 = n.getVlans();
+			JComboBox cb = new JComboBox();
+			for(Entry<Integer, Vlan> v : vlan2.entrySet()){
+				Item item = new Item(v.getKey(),v.getValue().getName());
+				cb.addItem(item);
+				if(v.getValue().getName() == vlan){
+					cb.setSelectedItem(item);
+				}
+			}
+			return  cb;
+		}
+		private JComboBox<?> createComboColorPanel(int type){
+
+			JComboBox<?> cb = new JComboBox<Object>(ConnectionsTypes.list);		
+			switch(type){ 
+			case ConnectionsTypes.GIGABIT: cb.setSelectedIndex(0); break;
+			case ConnectionsTypes.SERIAL: cb.setSelectedIndex(1); break;
+			case ConnectionsTypes.ETHERNET: cb.setSelectedIndex(2); break;
+			}
+			return cb;
+		}	
+
+		protected String getIp(){
+			return (String)this.ip.getSelectedItem();
+		}
+
+		public String getIntName(){
+			return this.intName.getText();
+		}
+
 		public int getVlan(){
 			return ((Item)(this.vlan.getSelectedItem())).getId();
 		}

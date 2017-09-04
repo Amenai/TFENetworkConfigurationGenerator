@@ -13,11 +13,13 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import ListsSystem.ConnectionsTypes;
+import controller.GUIController;
 import controller.SubnetUtils;
 import objects.Connection;
 import objects.Network;
 import objects.Router;
 import objects.UserPC;
+import objects.Vlan;
 
 public class JUnitTest {
 
@@ -25,67 +27,80 @@ public class JUnitTest {
 	@SuppressWarnings("static-access")
 	@Test
 	public void alltest() {
-	/*	SubnetUtils adrs = new SubnetUtils("192.168.0.128","255.255.255.240");
+		SubnetUtils adrs = new SubnetUtils("192.168.0.128","255.255.255.240");
 		Assert.assertEquals(adrs.getInfo().getCidrSignature(),"192.168.0.128/28");
 		adrs.getIp(adrs.getInfo().getCidrSignature());
-		this.network= new Network(adrs);
+		this.network= new Network(adrs.getInfo().getCidrSignature());
 		Assert.assertFalse(adrs.getInfo().isInRange("192.168.0.1"));
 		Assert.assertTrue(adrs.getInfo().isInRange("192.168.0.129"));
 		Assert.assertTrue(adrs.getInfo().isInRange("192.168.0.140"));
 		Assert.assertFalse(adrs.getInfo().isInRange("192.168.0.160"));
 		//Ajoute un router
-
-		Router router = new Router(this.network.getSubnet(), this.network.getHardwaresCount());
+		Router router = new Router(network.getAllHardwares().size(), "R1");
 		this.network.addHardware(router, new Point(300,300));		
 		buildRouter(router);
 		//Ajoute un router		
-		Router router2 = new Router(this.network.getSubnet(), this.network.getHardwaresCount());
-		this.network.addHardware(router2, new Point(400,300));
+		Router router2 = new Router(network.getAllHardwares().size(), "R1");
+		this.network.addHardware(router2, new Point(400,300));		
 
-		Assert.assertEquals(this.network.getHardwaresCount(), 2);
+		Assert.assertEquals(network.getAllHardwares().size(), 2);
 		//Ajoute une connection R1-R2
-		Connection con = new Connection(this.network, ConnectionsTypes.ETHERNET,router.getID(), router2.getID(), this.network.getConnectionCount());
-		this.network.addConnection(router.getID(), router2.getID(), con);
+		Vlan vlan = new Vlan(this.network.getSubnet(0), 0, "Global");
+		Vlan vlan2 = new Vlan(new SubnetUtils("192.168.0.192/26"),1,"Vlan 1");
+		try {
+			this.network.addVlan(vlan);
+		} catch (Exception e) {
+			System.out.println("VLAN " + e.getMessage());
+		}
+		try {
+			this.network.addVlan(vlan2);
+		} catch (Exception e) {
+			System.out.println("VLAN " + e.getMessage());
+		}
+		Connection con= new Connection(vlan2, ConnectionsTypes.ETHERNET, router.getID(), router2.getID(), this.network.getCoId(), this.network.getInterfaceName(router.getID(),ConnectionsTypes.ETHERNET), this.network.getInterfaceName(router2.getID(),ConnectionsTypes.ETHERNET), false);
+		this.network.addConnection(vlan2.getNum(), router.getID(), router2.getID(), con);
+
 		buildConnection(con);
 
-		Assert.assertEquals(this.network.getHardwaresCount(),2);
-		Assert.assertEquals(this.network.getConnectionCount(),1);
+		Assert.assertEquals(this.network.getAllHardwares().size(),2);
+		Assert.assertEquals(this.network.getAllConnections().size(),1);
 		//Ajoute un router
-		Router router3 = new Router(this.network.getSubnet(), this.network.getHardwaresCount());
-		this.network.addHardware(router3, new Point(500,300));		
+		Router router3 = new Router(network.getAllHardwares().size(), "R1");
+		this.network.addHardware(router3, new Point(500,300));			
 		//Ajoute une connection R3-R1
-		Connection con2 = new Connection(this.network, ConnectionsTypes.SERIAL,router3.getID(), router.getID(), this.network.getConnectionCount());
-		this.network.addConnection(router3.getID(), router.getID(), con2);
+		Connection con2= new Connection(vlan2, ConnectionsTypes.SERIAL, router2.getID(), router3.getID(), this.network.getCoId(), this.network.getInterfaceName(router2.getID(),ConnectionsTypes.SERIAL), this.network.getInterfaceName(router3.getID(),ConnectionsTypes.SERIAL), false);
+		this.network.addConnection(vlan2.getNum(), router.getID(), router2.getID(), con2);
 
-		Assert.assertEquals(this.network.getHardwaresCount(),3);
-		Assert.assertEquals(this.network.getConnectionCount(),2);
+		Assert.assertEquals(this.network.getAllHardwares().size(),3);
+		Assert.assertEquals(this.network.getAllConnections().size(),2);
 		//Supprimer le router 2 et toutes ces connections
-		this.network.removeHard(router2.getID());
-		Assert.assertEquals(this.network.getHardwaresCount(),2);
-		Assert.assertEquals(this.network.getConnectionCount(),1);
+		this.network.removeHard(router.getID());
+		Assert.assertEquals(this.network.getAllHardwares().size(),2);
+		Assert.assertEquals(this.network.getAllConnections().size(),1);
 		//Ajoute un PC
-		UserPC pc = new UserPC(this.network.getSubnet(), this.network.getHardwaresCount());
+		UserPC pc = new UserPC(0, "U1");
 		this.network.addHardware(pc, new Point(200,200));		
 
-		Assert.assertEquals(this.network.getHardwaresCount(),3);
-		Assert.assertEquals(this.network.getConnectionCount(),1);
+		Assert.assertEquals(this.network.getAllHardwares().size(),3);
+		Assert.assertEquals(this.network.getAllConnections().size(),1);
 		//Vérifie le réseau
-		checkNetwork();
+		//checkNetwork();
 		//Sauvegarde
-		saving();
+		//saving();
 		//Reset
-		newNetwork();
+		//newNetwork();
 		//Vérification du reset
-		Assert.assertEquals(this.network.getHardwaresCount(),0);
-		Assert.assertEquals(this.network.getConnectionCount(),0);
-		Assert.assertEquals(this.network.getSubnet().getInfo().getCidrSignature(),"192.168.0.1/24");
+		/*
+		Assert.assertEquals(this.network.getAllHardwares().size(),0);
+		Assert.assertEquals(this.network.getAllConnections().size(),0);
+		Assert.assertEquals(this.network.getVlans().get(0).getSubnetwork().getInfo().getCidrSignature(),"192.168.0.1/24");
 		//Ouverture du réseau enregistré
-		loading();
+		//loading();
 		//Vérification de l'ouverture
-		Assert.assertEquals(this.network.getHardwaresCount(),3);
-		Assert.assertEquals(this.network.getConnectionCount(),1);
-		Assert.assertEquals(this.network.getSubnet().getInfo().getCidrSignature(),"192.168.0.128/28");
-		*/
+		Assert.assertEquals(this.network.getAllHardwares().size(),3);
+		Assert.assertEquals(this.network.getAllConnections().size(),1);
+		Assert.assertEquals(this.network.getVlans().get(0).getSubnetwork().getInfo().getCidrSignature(),"192.168.0.128/28");*/
+		
 	}
 	/**
 	 * Ouvre un réseau déjà enregistré
@@ -156,7 +171,7 @@ public class JUnitTest {
 	 * @param con
 	 */
 	private void buildConnection(Connection con) {
-	/*	Assert.assertFalse(con.setCompoIP1("192.168.0.1"));
+		/*	Assert.assertFalse(con.setCompoIP1("192.168.0.1"));
 		Assert.assertFalse(con.setCompoIP1("192.168.10.1"));
 		Assert.assertFalse(con.setCompoIP1("192.168.1.252"));
 		Assert.assertTrue(con.setCompoIP1("192.168.0.130"));*/

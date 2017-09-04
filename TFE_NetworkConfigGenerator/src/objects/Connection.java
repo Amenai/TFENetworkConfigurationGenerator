@@ -66,12 +66,12 @@ public class Connection {
 		return subnetwork;
 	}
 
-	public boolean setSubnetwork(SubnetUtils subnetwork) {
+	/*public boolean setSsubnetwork(SubnetUtils subnetwork) {
 		this.subnetwork = subnetwork;
-		boolean t = setCompoIP(this.subnetwork.getInfo().getFirstFreeIP(), this.getFirstCompo());
-		t = setCompoIP(this.subnetwork.getInfo().getFirstFreeIP(), this.getSecondCompo());
+		boolean t = setCompoIP(this.subnetwork.getInfo().getFirstFreeIP(), this.getFirstCompo(),false);
+		t = setCompoIP(this.subnetwork.getInfo().getFirstFreeIP(), this.getSecondCompo(),false);
 		return t;
-	}
+	}*/
 
 	public int getConnectionID() {
 		return connectionID;
@@ -88,16 +88,17 @@ public class Connection {
 	public String getCompoIP2() {
 		return this.compo.get(1).getIP();
 	}
-	public boolean setCompoIP(String compoIP,int compoID) {	
+	public boolean setCompoIP(String compoIP,int compoID,boolean hack) {	
+		//TODO
 		if( getFirstCompo() == compoID){
-				if (this.subnetwork.getInfo().isFree(compoIP)){
+			if (this.subnetwork.getInfo().isFree(compoIP) || hack){
 				this.subnetwork.getInfo().setIPFree(this.compo.get(0).getIP(), true);
-				this.compo.get(0).setIP(compoIP); 
+				this.compo.get(0).setIP(compoIP);
 				this.subnetwork.getInfo().setIPFree(compoIP, false);
 			}
 		}
 		else{
-			if (this.subnetwork.getInfo().isFree(compoIP)){
+			if (this.subnetwork.getInfo().isFree(compoIP) || hack){
 				this.subnetwork.getInfo().setIPFree(this.compo.get(1).getIP(), true);
 				this.compo.get(1).setIP(compoIP); 
 				this.subnetwork.getInfo().setIPFree(compoIP, false);
@@ -139,7 +140,7 @@ public class Connection {
 	}
 
 	public void fromJSONObject(JSONObject obj) {
-	
+
 	}
 	class MyValue {
 		private int ID ;

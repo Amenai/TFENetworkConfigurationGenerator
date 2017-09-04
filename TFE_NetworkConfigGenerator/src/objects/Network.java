@@ -21,9 +21,9 @@ public class Network {
 	public Network() {
 		try {
 			addVlan(new Vlan(SubnetUtils.getIp("192.168.0.0/25"), 0, "Global"));
-			addVlan(new Vlan(SubnetUtils.getIp("1.168.0.128/24"),1,""));
+			/*addVlan(new Vlan(SubnetUtils.getIp("1.168.0.128/24"),1,""));
 			addVlan(new Vlan(SubnetUtils.getIp("3.168.0.160/27"),99,"Admin"));
-			addVlan(new Vlan(SubnetUtils.getIp("1.168.0.192/26"),2,"BOB"));
+			addVlan(new Vlan(SubnetUtils.getIp("1.168.0.192/26"),2,"BOB"));*/
 		} catch (Exception e) {
 		}		
 		System.out.println("GLOBAL = " + vlanList.get(0).getSubnetwork().getInfo().getCidrSignature());
@@ -67,13 +67,40 @@ public class Network {
 			config+= "hostname " +r.getHostname()+ "\r\n!\r\n";
 			config+= "enable secret " + r.getSecret() + "\r\n";
 			config+= "enable password " + r.getPassword()+ "\r\n!\r\n";
-			for(Connection co : allConnections){
+			for(Connection co : allConnections){				
 				config += "interface " + co.getCompoName(harwareID) + "\r\n";
 				if(harwareID == co.getFirstCompo()){
-					config += "ip address " + co.getCompoIP1() +" "+ co.getSubnetwork().getInfo().getNetmask().toString() + "\r\n";			
+					if(this.getHardware(co.getSecondCompo()).getType() == HardwaresListS.SWITCH){
+						SwitchRouterConnection co2 = (SwitchRouterConnection) co;
+						for(int subCo : co2.getSubinterface()){
+							config+="no ip "+ "\r\n!\r\n";
+							config+="no shutdown "+ "\r\n!\r\n";
+							Connection subConnect = this.getConnection(subCo);
+							config += "interface " + subConnect.getCompoName(harwareID)+"."+subConnect.getVlanID() + "\r\n";
+							config += "encapsulation dot1Q" + subConnect.getVlanID() +"\r\n";
+							config += "ip address " + subConnect.getCompoIP1() +" "+ subConnect.getSubnetwork().getInfo().getNetmask().toString() + "\r\n";
+						}
+					}
+					else {
+						config += "ip address " + co.getCompoIP1() +" "+ co.getSubnetwork().getInfo().getNetmask().toString() + "\r\n";			
+					}
 				}
 				else {
-					config += "ip address " + co.getCompoIP2() +" "+ co.getSubnetwork().getInfo().getNetmask().toString() + "\r\n";	
+					if(this.getHardware(co.getFirstCompo()).getType() == HardwaresListS.SWITCH){
+						SwitchRouterConnection co2 = (SwitchRouterConnection) co;
+						for(int subCo : co2.getSubinterface()){
+							config+="no ip "+ "\r\n!\r\n";
+							config+="no shutdown "+ "\r\n!\r\n";
+							Connection subConnect = this.getConnection(subCo);
+							config += "interface " + subConnect.getCompoName(harwareID)+"."+subConnect.getVlanID() + "\r\n";
+							config += "encapsulation dot1Q" + subConnect.getVlanID() +"\r\n";
+							config += "ip address " + subConnect.getCompoIP2() +" "+ subConnect.getSubnetwork().getInfo().getNetmask().toString() + "\r\n";
+						}
+					}
+					else{
+						config += "ip address " + co.getCompoIP2() +" "+ co.getSubnetwork().getInfo().getNetmask().toString() + "\r\n";	
+					}
+
 				}
 				config+="no shutdown "+ "\r\n!\r\n";
 			}			
@@ -107,6 +134,7 @@ public class Network {
 						config += "switchport mode trunk " + "\r\n";
 					}
 				}
+				config+= "!\r\n";
 			}
 			break;
 		}
@@ -117,8 +145,12 @@ public class Network {
 	public HashMap<Integer,Hardware> getAllHardwares() {
 		return hardwaresList;
 	}
-	public Hardware getHardware(int e){
-		return hardwaresList.get(e);
+	public Hardware getHardware(int e){		
+		Hardware h = hardwaresList.get(e);
+		return h;
+	}
+	public Connection getConnection(int co){
+		return this.connectionsList.get((Integer)co);
 	}
 
 	public ArrayList<Connection> getConnections(ArrayList<Integer> connection) {
@@ -148,11 +180,23 @@ public class Network {
 	public void removeConnection(Connection co){
 		this.connectionsList.remove(co.getConnectionID());
 		co.remove();		
-		if(this.hardwaresList.get(co.getSecondCompo()).getType() == HardwaresListS.USER_PC){		
+		if(this.hardwaresList.get(co.getSecondCompo()).getType() == HardwaresListS.USER_PC){	
 			((UserPC)this.hardwaresList.get(co.getSecondCompo())).reset();
 		}
 		if(this.hardwaresList.get(co.getFirstCompo()).getType() == HardwaresListS.USER_PC){		
 			((UserPC)this.hardwaresList.get(co.getFirstCompo())).reset();
+		}
+		if(this.hardwaresList.get(co.getFirstCompo()).getType() == HardwaresListS.SWITCH){
+			//SWITCH - PC
+			HashMap<Integer, Integer> a = ((Switch)this.hardwaresList.get(co.getFirstCompo())).getAllSRCo();
+			for(Integer coID : a.values()){
+				((SwitchRouterConnection)this.connectionsList.get(coID)).removeSubInterface(co.getConnectionID());
+			}
+		}
+		if(this.hardwaresList.get(co.getSecondCompo()).getType() == HardwaresListS.SWITCH){
+			// ROUTER - SWITCH
+			((Switch)this.hardwaresList.get(co.getSecondCompo())).removeSR(co.getConnectionID());
+
 		}
 		deleteLink(co.getFirstCompo(),co.getConnectionID());
 		deleteLink(co.getSecondCompo(),co.getConnectionID());
@@ -206,7 +250,26 @@ public class Network {
 		}
 		return name;
 	}
-
+	//TODO
+	public Connection getConnectionFromVlan(int vlan,int switchID, int hardType){
+		Switch s = (Switch)this.getHardware(switchID);
+		ArrayList<Connection> connections = this.getConnectionsof(switchID);
+		for (Connection co : connections){
+			if(co.getVlanID() == vlan){
+				if(co.getFirstCompo() == switchID){
+					if(this.getHardware(co.getSecondCompo()).getType() == hardType){
+						return co;
+					}					
+				}
+				else {
+					if(this.getHardware(co.getFirstCompo()).getType() == hardType){
+						return co;
+					}	
+				}
+			}
+		}
+		return null;
+	}
 	public int getFreeHardwareCount() {
 		if (hardwaresList.isEmpty() == false) {
 			for (int i = 0; i <= hardwaresList.size(); i++) {
@@ -259,8 +322,8 @@ public class Network {
 
 				this.removeConnection(co);
 
-				newCo.setCompoIP(newVlan.getSubnetwork().getInfo().getFirstFreeIP(),newCo.getFirstCompo());
-				newCo.setCompoIP(newVlan.getSubnetwork().getInfo().getFirstFreeIP(),newCo.getSecondCompo());
+				newCo.setCompoIP(newVlan.getSubnetwork().getInfo().getFirstFreeIP(),newCo.getFirstCompo(),false);
+				newCo.setCompoIP(newVlan.getSubnetwork().getInfo().getFirstFreeIP(),newCo.getSecondCompo(),false);
 				if (this.getHardware(newCo.getSecondCompo()).getType() == HardwaresListS.USER_PC){
 					((UserPC)this.getHardware(newCo.getSecondCompo())).setIp(newCo.getCompoIP2(),newVlan.getNum());
 				}
@@ -347,6 +410,15 @@ public class Network {
 				break;
 			case HardwaresListS.SWITCH : 
 				Switch switc = new Switch((int) (long) hardware.get("id"),(String) hardware.get("hostname"));
+				HashMap<Integer, Integer> srCo = new HashMap<>();
+				JSONArray SRCoJSON = (JSONArray) hardware.get("srConnections");				
+				for(int xc =0; xc<SRCoJSON.size();xc++){
+					JSONObject SRCJson = (JSONObject) SRCoJSON.get(xc);
+					int value = (int)(long)SRCJson.get("value");
+					int key = (int)(long)SRCJson.get("key");			
+					srCo.put(key, value);
+				}
+				switc.setSRConnection(srCo);
 
 				this.addHardware(switc, new Point((int) (long) hardware.get("positionX"),(int) (long) hardware.get("positionY")));
 
@@ -366,12 +438,23 @@ public class Network {
 			int vlanID = (int) (long)connection.get("vlanID");
 
 			boolean isSub = (boolean)connection.get("isSub");
-			Connection co = new Connection(this.vlanList.get(vlanID), type, compoID1, compoID2, connectionID, name1, name2, isSub);
 			String compoIP1 = (String)connection.get("compoIP1");
 			String compoIP2 = (String)connection.get("compoIP2");
-			co.setCompoIP(compoIP1, compoID1);
-			co.setCompoIP(compoIP2, compoID2);
-			this.addConnection(vlanID, compoID1, compoID2, co);
+			
+			if(isSub){
+				SwitchRouterConnection co = new SwitchRouterConnection(this.vlanList.get(vlanID), type, compoID1, compoID2, connectionID, name1, name2, isSub);
+				co.setCompoIP(compoIP1, compoID1,false);
+				co.setCompoIP(compoIP2, compoID2,false);
+				this.addConnection(vlanID, compoID1, compoID2, co);
+			}
+			else {
+				Connection co = new Connection(this.vlanList.get(vlanID), type, compoID1, compoID2, connectionID, name1, name2, isSub);
+				co.setCompoIP(compoIP1, compoID1,false);
+				co.setCompoIP(compoIP2, compoID2,false);
+				this.addConnection(vlanID, compoID1, compoID2, co);
+			}
+			
+			
 		}
 	}
 	@SuppressWarnings("unchecked")
